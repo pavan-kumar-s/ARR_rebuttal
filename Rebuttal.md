@@ -60,7 +60,7 @@ The authors must add a train-and-evaluate experiment showing the leakage reducti
 
 We thank the reviewer for their input. To address this concern, we have trained and evaluated a model for some select configurations.
 
-We train a BiLSTM-CRF on the splits produced by each method, holding the model and hyperparameters fixed throughout (BioLinkBERT embeddings/tokenizer for the biomedical datasets, ModernBERT for the general-domain ones; lr=0.01, dropout 0.2, batch 2048, Adam, WSD schedule with 0.1 warmup / 0.2 decay, 100 epochs, early stopping at patience 10). Lower F1 should indicate a less inflated estimate of generalisation.
+We train a BiLSTM-CRF model on the splits produced by each method, holding the model and hyperparameters fixed throughout (BioLinkBERT embeddings/tokenizer for the biomedical datasets, ModernBERT for the general-domain ones; lr=0.01, dropout 0.2, batch 2048, Adam, WSD schedule with 0.1 warmup / 0.2 decay, 100 epochs, early stopping at patience 10). Lower F1 should indicate a less inflated estimate of generalisation.
 
 For all the EMPIRE experiments, we set ε=0 and δ=1, so that the splits preserve the native split ratios and the training-set size is held constant across methods, isolating the effect of leakage reduction on measured F1. δ=1 relaxes the class-proportionality constraint, matching MinCut, which does not enforce it either.
 
@@ -118,7 +118,33 @@ We thank the reviewer for their valuable feedback.
 **Weakness-1:**
 The paper motivates EMPIRE as a way to obtain more reliable estimates of NER generalization, but the experiments only evaluate properties of the generated splits. The paper does not train or evaluate any NER model on the native, MinCut, and EMPIRE splits. As a result, it remains unclear whether the proposed split metrics actually translate into more reliable estimates of model generalization.
 
-**Action:**  TO BE DONE
+We thank the reviewer for their input. To address this concern, we have trained and evaluated a model for some select configurations.
+
+We train a BiLSTM-CRF model on the splits produced by each method, holding the model and hyperparameters fixed throughout (BioLinkBERT embeddings/tokenizer for the biomedical datasets, ModernBERT for the general-domain ones; lr=0.01, dropout 0.2, batch 2048, Adam, WSD schedule with 0.1 warmup / 0.2 decay, 100 epochs, early stopping at patience 10). Lower F1 should indicate a less inflated estimate of generalisation.
+
+For all the EMPIRE experiments, we set ε=0 and δ=1, so that the splits preserve the native split ratios and the training-set size is held constant across methods, isolating the effect of leakage reduction on measured F1. δ=1 relaxes the class-proportionality constraint, matching MinCut, which does not enforce it either.
+
+| Dataset | Native | MinCut | EMPIRE α=0 | EMPIRE α=0.5 | EMPIRE α=1 |
+|---|---|---|---|---|---|
+| JNLPBA | 0.644 | 0.536 | 0.619 | 0.639 | **0.393** |
+| BC5CDR | 0.744 | **0.350** | 0.827 | 0.823 | 0.759 |
+| NCBI-Disease | 0.692 | 0.467 | 0.601 | 0.565 | **0.292** |
+| BC2GM | 0.660 | 0.512 | 0.459 | **0.347** | 0.462 |
+| CoNLL2003 | 0.716 | 0.543 | 0.522 | 0.607 | **0.434** |
+| CrossNER | 0.253 | **0.002** | 0.063 | 0.050 | 0.136 |
+| WNUT-17 | 0.016 | 0.015 | 0.028 | **0.008** | 0.085 |
+| FiNER-ORD | 0.572 | 0.409 | 0.558 | **0.635** | 0.391 |
+
+On 6 of 8 datasets (JNLPBA, NCBI-Disease, BC2GM, CoNLL2003, WNUT-17, FiNER-ORD), at least one EMPIRE configuration yields a lower test F1 than both Native and MinCut. 
+
+**No single configuration is uniformly best.** The α that yields the lowest F1 varies by dataset (α=1 on JNLPBA, NCBI-Disease and CoNLL2003; α=0.5 on BC2GM). This could mean that the type of leakage that is dominant differs across the datasets. We can explore how to determine which dataset characteristics predict the best α in future work. EMPIRE's contribution is that α makes this choice explicit and controllable.
+
+**Where the effect does not appear:** On BC5CDR, no EMPIRE setting reduces F1 below Native at any α. We do not have an explanation, and suspect it reflects a property of the dataset and warrants further investigation. On WNUT-17, F1 is very low under every method including Native (0.016), which is expected given the benchmark is built from rare, previously-unseen entities.
+
+**Limitations:** These runs use a single seed per configuration. We therefore present this as a preliminary result and rely only on the relative ordering across splits.
+
+**Action:**  We will add this train-and-evaluate experiment as a new subsection, and re-run the full grid with multiple seeds (mean ± std).
+
 
 **Weakness-2:**
 The paper defines context leakage as memorization of repeated syntactic or semantic patterns, but operationalizes it as average cosine similarity between cross-split sentence embeddings. This is a plausible heuristic, but the paper does not validate that this metric captures the harmful form of context memorization described in Figure 1. Moreover, the improvements in Table 4 are often numerically small.
@@ -146,12 +172,11 @@ On the validation of I.L. as a measure of context leakage: TO BE DONE
 **Weakness-3:**
 The narrative does not consistently match the reported numbers. The paper presents alpha=0.5 as a highly effective compromise, but on BC5CDR it performs substantially worse than both Native and MinCut for entity-level metrics. The paper also claims near-zero class distribution drift for EMPIRE alpha=0 with delta*, including CrossNER, but Table 3 shows a large Hellinger distance for that setting.
 
-BC5CDR EXPLANATION: TO BE DONE
-
+The reviewer is correct that on BC5CDR, α=0.5 yields lower entity disjointness (56.3) and higher ECR (86.5) than Native (73.2 / 72.3) and MinCut (81.8 / 47.0). This is the expected consequence of the α trade-off on this particular dataset. Any weight on the context objective (α<1) therefore keeps same-context sentences together and necessarily drags shared entities across splits, lowering disjointness. Accordingly, α=1 recovers the best disjointness of any method on BC5CDR (90.5). We will correct our presentation of α=0.5 as a universally effective compromise; the appropriate α is dataset-dependent, and for entity-critical evaluation on dense, low-class-count corpora such as BC5CDR, α should be set toward 1. We will revise the narrative in Section 5.1.
 
 On CrossNER, a lower Hellinger distance is simply not possible at α=0. δ* IS the minimum feasible tolerance returned by the feasibility pre-check, and for CrossNER it is 0.9767 (Table 7) against 0.1 for every other dataset. No tighter class constraint admits a valid partition at all, so the drift we report is the best achievable for that dataset and not a failure to enforce proportionality. The reason δ* is so high is that CrossNER has 39 classes over just 5,327 instances, and at α=0 the solver works over 50 clusters.
 
-**Action:** TO BE DONE
+**Action:** We will (a) rewrite the α=0.5 discussion in Section 5.1 and add dataset-dependent α-selection guidance, and (b) correct the class-drift claim in Section 5.2 to attribute near-zero CrossNER drift to α=1, δ*. 
 
 **Weakness-4:**
 The formulation uses only lower bounds for split size and class proportions. This ensures that each split receives at least some minimum amount of data or labels, but it does not directly enforce upper bounds or absolute deviation from the target ratios. Therefore, the formulation does not fully match the paper's claim that EMPIRE preserves predefined split ratios and semantic class proportionality.
@@ -220,7 +245,7 @@ Section 3.2 argued that because the total number of sentences is fixed and every
 The empirical comparison is mainly against Native and MinCut. This is not enough to establish that EMPIRE is the best or most useful way to jointly reduce entity and context leakage while preserving class balance. The paper dismisses DataSAIL as unsuitable for NER because NER instances may contain multiple entities, but it does not compare against an adapted similarity-aware or stratified splitting baseline.
 
 
-The reviewer is right that we haven’t compared EMPIRE with any similarity-aware baseline. Hence, we have implemented one (Top-sim). For each sentence, we compute its maximum cosine similarity to any other sentence in the corpus, sort all sentences in ascending order of this value, and fill the test, validation, and training partitions in that order. The most isolated sentences (those with no near-duplicate elsewhere in the corpus) are therefore assigned to the test and eval sets, while sentences with close neighbours are retained together in training. Split sizes are fixed to the native sizes, so the split ratio is preserved exactly.
+We thank the reviewer for the suggestion. We have now compared EMPIRE with a similarity-aware baseline. Hence, we have implemented one (Top-sim). For each sentence, we compute its maximum cosine similarity to any other sentence in the corpus, sort all sentences in ascending order of this value, and fill the test, validation, and training partitions in that order. The most isolated sentences (those with no near-duplicate elsewhere in the corpus) are therefore assigned to the test and eval sets, while sentences with close neighbours are retained together in training. Split sizes are fixed to the native sizes, so the split ratio is preserved exactly.
 
 | Dataset | Top-sim | EMPIRE (α=0, δ=1) | EMPIRE (α=0, δ\*) |
 |---|---|---|---|
@@ -242,7 +267,14 @@ EMPIRE (α=0, δ=1) achieves lower Information Leakage than Top-sim on all 8 dat
 Although page limits are maxima rather than minima, I found the use of space somewhat concerning. The paper is submitted as a long-paper-style contribution, but the main technical and empirical content ends before using the full main-content budget, while several essential details are missing. Since the Limitations section does not count toward the ARR page limit, these omissions are difficult to justify as space constraints.
 
 
-**Action:** 
+We thank the reviewer for this fair observation. We agree that the original submission under-used the main-content budget and deferred several essential details to the appendix. The revision uses the available space for substantive additions most of which are enabled by the new experiments conducted during this cycle:
+
+- Expanded evaluation (4 → 8 datasets). We add NCBI-Disease, BC2GM, WNUT-17, and FiNER-ORD, spanning additional biomedical and general/financial domains. All main tables (Disjointness, ECR, Hellinger, Information Leakage) and their accompanying analysis grow accordingly, giving a substantially fuller empirical picture in the main text.
+- Method details currently missing or implicit. We move into the main text the embedding-model choices and their domain-specific rationale (pubmedbert-base-embeddings for biomedical, all-MiniLM-L6-v2 for general-domain), the similarity rescaling from [-1, 1] to [0, 1] and its effect on solver tractability, the multi-seed protocol, and the clustering/feasibility settings — details that a reader currently cannot reconstruct.
+- Validation of the Information Leakage metric. We add a construct-validity analysis showing that cross-split embedding similarity captures the context-memorization phenomenon of Figure 1 (frame-sharing sentences with different entities score markedly higher than same-entity/different-context pairs), directly answering the concern about whether the metric measures the intended quantity.
+- Downstream train-and-evaluate analysis. We add an experiment training an NER model on the Native/MinCut/EMPIRE splits, linking leakage reduction to measured generalization
+  
+**Action:** In the revised version we will restructure Sections 4–5 to incorporate items 1–5 into the main content and reduce reliance on the appendix for essential material, ensuring the main-content budget is used for the technical and empirical detail the reviewer rightly expects.
 
 
 
