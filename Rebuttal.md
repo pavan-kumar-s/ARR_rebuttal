@@ -115,16 +115,21 @@ On the concern that the **Table 4 improvements are numerically small**: we trace
 | WNUT-17 | <u>0.084</u> | 0.105 | **0.073** | 0.089 | 0.093 | 0.096 | 0.105 | 0.106 |
 | FiNER-ORD | 0.092 | 0.093 | **0.060** | <u>0.069</u> | 0.083 | 0.083 | 0.092 | 0.093 |
 
-At α=0, EMPIRE reduces I.L. by **14–61% over Native (≈37% on average)** across all 8 datasets, so the improvements are no longer numerically small.
+At α=0, EMPIRE reduces I.L. by **14–61% over Native (≈37% on average)** across all 8 datasets, so the improvements are no longer numerically small.\
+
+On the validation of I.L. as a measure of context leakage: TO BE DONE
 
 **Action:** We will replace Table 4 with the updated results and report the three modifications in Sections 4.3 and 5.3
 
 **Weakness-3:**
 The narrative does not consistently match the reported numbers. The paper presents alpha=0.5 as a highly effective compromise, but on BC5CDR it performs substantially worse than both Native and MinCut for entity-level metrics. The paper also claims near-zero class distribution drift for EMPIRE alpha=0 with delta*, including CrossNER, but Table 3 shows a large Hellinger distance for that setting.
 
+BC5CDR EXPLANATION: TO BE DONE
 
 
-**Action:**
+On CrossNER, a lower Hellinger distance is simply not possible at α=0. δ* IS the minimum feasible tolerance returned by the feasibility pre-check, and for CrossNER it is 0.9767 (Table 7) against 0.1 for every other dataset. No tighter class constraint admits a valid partition at all, so the drift we report is the best achievable for that dataset and not a failure to enforce proportionality. The reason δ* is so high is that CrossNER has 39 classes over just 5,327 instances, and at α=0 the solver works over 50 clusters.
+
+**Action:** TO BE DONE
 
 **Weakness-4:**
 The formulation uses only lower bounds for split size and class proportions. This ensures that each split receives at least some minimum amount of data or labels, but it does not directly enforce upper bounds or absolute deviation from the target ratios. Therefore, the formulation does not fully match the paper's claim that EMPIRE preserves predefined split ratios and semantic class proportionality.
@@ -187,7 +192,7 @@ Section 3.2 argued that because the total number of sentences is fixed and every
 | | EMPIRE (no UB) | 100.00 | 0.00 | 0.108 | 0.093 |
 | | EMPIRE (with UB) | 100.00 | 0.00 | 0.093 | 0.092 |
 
-
+**Action:** TO BE DONE
 
 **Weakness-5:**
 The empirical comparison is mainly against Native and MinCut. This is not enough to establish that EMPIRE is the best or most useful way to jointly reduce entity and context leakage while preserving class balance. The paper dismisses DataSAIL as unsuitable for NER because NER instances may contain multiple entities, but it does not compare against an adapted similarity-aware or stratified splitting baseline.
@@ -207,6 +212,8 @@ The reviewer is right that we haven’t compared EMPIRE with any similarity-awar
 | FiNER-ORD | 0.0862 | **0.0604** | <u>0.0693</u> |
 
 EMPIRE (α=0, δ=1) achieves lower Information Leakage than Top-sim on all 8 datasets. With class-balance constraints (δ*), EMPIRE is lower on 5 of 8 datasets nd comparable on the remaining three, since it must additionally preserve the native class distribution.
+
+**Action:** We will add results for this baseline along with Native, MinCut and EMPIRE.
 
 
 **Weakness-6:**
