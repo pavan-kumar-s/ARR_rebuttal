@@ -165,9 +165,25 @@ On the concern that the **Table 4 improvements are numerically small**: we trace
 At α=0, EMPIRE reduces I.L. by **14–61% over Native (≈37% on average)** across all 8 datasets, so the improvements are no longer numerically small.
 
 
-On the validation of I.L. as a measure of context leakage: TO BE DONE
+On **the validation of I.L. as a measure of context leakage:** The reviewer is right that we did not verify that cross-split cosine similarity captures the form of context memorization described in Figure 1. Two observations support it. First, we embed the two context-leakage sentences from Figure 1 ("Patient admitted to St. Jude's for observation" / "Patient admitted to Mayo Clinic for observation") with all-MiniLM-L6-v2 and obtain a cosine similarity of 0.646. Compared against the distribution of pairwise cosine similarities within each of the four general-domain datasets, this value lies above the 99th percentile in all four:
 
-**Action:** We will replace Table 4 with the updated results and report the three modifications in Sections 4.3 and 5.3
+| Dataset | p50 | p60 | p70 | p80 | p90 | p95 | p99 |
+|---|---|---|---|---|---|---|---|
+| CoNLL2003 | 0.080 | 0.110 | 0.146 | 0.193 | 0.263 | 0.323 | 0.459 |
+| CrossNER | 0.042 | 0.065 | 0.092 | 0.128 | 0.186 | 0.242 | 0.357 |
+| WNUT-17 | 0.097 | 0.122 | 0.151 | 0.187 | 0.242 | 0.292 | 0.391 |
+| FiNER-ORD | 0.085 | 0.110 | 0.139 | 0.173 | 0.225 | 0.270 | 0.363 |
+
+Moreover, we directly find such patterns in our datasets: sentence pairs sharing the same surrounding template but containing different entities have a much larger cosine similarity than randomly paired sentences from the same corpus.
+
+| Dataset | Pair | Sentence 1 | Sentence 2 | Cosine similarity |
+|---|---|---|---|---|
+| NCBI-Disease | same-template | Familial deficiency of the seventh component of complement associated with recurrent bacteremic infections due to Neisseria . | Familial deficiency of the seventh component of complement associated with recurrent meningococcal infections . | 0.870 |
+| NCBI-Disease | different | Identification of APC2 , a homologue of the adenomatous polyposis coli tumour suppressor . | Complex formation induces the rapid degradation of betacatenin . | 0.111 |
+| BC2GM | same-template | Molecular cloning of mouse glycolate oxidase . | Molecular cloning of mouse thioredoxin reductases . | 0.538 |
+| BC2GM | different | Comparison with alkaline phosphatases and 5 - nucleotidase | Pharmacologic aspects of neonatal hyperbilirubinemia . | 0.094 |
+
+**Action:** We will replace Table 4 with the updated results and report the three modifications in Sections 4.3 and 5.3, and show how cosine similarity captures the context memorization patterns described in Figure 1.
 
 **Weakness-3:**
 The narrative does not consistently match the reported numbers. The paper presents alpha=0.5 as a highly effective compromise, but on BC5CDR it performs substantially worse than both Native and MinCut for entity-level metrics. The paper also claims near-zero class distribution drift for EMPIRE alpha=0 with delta*, including CrossNER, but Table 3 shows a large Hellinger distance for that setting.
@@ -181,7 +197,7 @@ On CrossNER, a lower Hellinger distance is simply not possible at α=0. δ* IS t
 **Weakness-4:**
 The formulation uses only lower bounds for split size and class proportions. This ensures that each split receives at least some minimum amount of data or labels, but it does not directly enforce upper bounds or absolute deviation from the target ratios. Therefore, the formulation does not fully match the paper's claim that EMPIRE preserves predefined split ratios and semantic class proportionality.
 
-We thank the reviewer for this observation. We have experimented wth adding explicit upper-bound constraints to the formulation and re-run EMPIRE with them, and report both the theoretical and empirical resolution below. Considering the case of ϵ (which is the tolerance on the split ratio constraint), we can define the upper bound as n⋅(Pq + ϵ *⋅(1-Pq)). At ϵ=0, the upper bound collapses onto the lower bound (Pq⋅n), enforcing the exact target ratio; at ϵ=1, it relaxes to n, i.e., no constraint.
+We thank the reviewer for this observation. We have experimented with adding explicit upper-bound constraints to the formulation and re-run EMPIRE with them, and report both the theoretical and empirical resolution below. Considering the case of ϵ (which is the tolerance on the split ratio constraint), we can define the upper bound as n⋅(Pq + ϵ *⋅(1-Pq)). At ϵ=0, the upper bound collapses onto the lower bound (Pq⋅n), enforcing the exact target ratio; at ϵ=1, it relaxes to n, i.e., no constraint.
 
 Section 3.2 argued that because the total number of sentences is fixed and every split is forced to meet its minimum, no split can grow arbitrarily large. So, the upper bound is implied and can be omitted for solver efficiency. The results support this: with and without the upper-bound constraints, the realised split ratios are very close to each other, and both stay close to the native ratios. The split-quality metrics are similarly unaffected. Experimentally, therefore, there does not appear to be a need for the upper bound: the lower-bound-only formulation already produces partitions that respect the intended split ratios.
 
@@ -239,13 +255,35 @@ Section 3.2 argued that because the total number of sentences is fixed and every
 | | EMPIRE (no UB) | 100.00 | 0.00 | 0.108 | 0.093 |
 | | EMPIRE (with UB) | 100.00 | 0.00 | 0.093 | 0.092 |
 
-**Action:** TO BE DONE
+**Action:** We will add this with/without-UB comparison in the Appendix, showing that we achieve very similar split ratios and metric values with and without the upper bound.
 
 **Weakness-5:**
 The empirical comparison is mainly against Native and MinCut. This is not enough to establish that EMPIRE is the best or most useful way to jointly reduce entity and context leakage while preserving class balance. The paper dismisses DataSAIL as unsuitable for NER because NER instances may contain multiple entities, but it does not compare against an adapted similarity-aware or stratified splitting baseline.
 
 
-We thank the reviewer for the suggestion. We have now compared EMPIRE with a similarity-aware baseline. Hence, we have implemented one (Top-sim). For each sentence, we compute its maximum cosine similarity to any other sentence in the corpus, sort all sentences in ascending order of this value, and fill the test, validation, and training partitions in that order. The most isolated sentences (those with no near-duplicate elsewhere in the corpus) are therefore assigned to the test and eval sets, while sentences with close neighbours are retained together in training. Split sizes are fixed to the native sizes, so the split ratio is preserved exactly.
+We thank the reviewer for the suggestion. We have now compared EMPIRE with a similarity-aware baseline. Hence, we have implemented one (Top-sim). The way this works is:
+
+1. For each sentence, we compute its maximum cosine similarity to any other sentence in the corpus
+2. We sort all sentences in ascending order of this value
+3. Sentences with the smallest similarity values are most isolated
+4. We walk down the sorted list and assign each sentence to exactly one split, filling the test set first, then validation, then training
+5. Hence, the most isolated sentences (those with no near-duplicate elsewhere in the corpus) are assigned to the test and eval sets, while sentences with some close neighbour are put in training
+6. Split sizes are fixed to the native sizes, so the split ratio is preserved exactly.
+
+**Entity Disjointness (%) (↑):**
+
+| Dataset | Native | Top-sim | EMPIRE (α=0, δ=1) | EMPIRE (α=0, δ\*) |
+|---|---|---|---|---|
+| JNLPBA | 93.42 | 91.85 | **95.91** | 91.98 |
+| BC5CDR | **73.22** | 53.08 | 55.42 | 55.85 |
+| NCBI-Disease | 86.52 | 82.16 | **88.24** | 84.19 |
+| BC2GM | 89.41 | 94.70 | **97.97** | 93.11 |
+| CoNLL-2003 | 82.80 | 78.65 | **87.69** | 83.09 |
+| CrossNER | 87.48 | 91.18 | **96.61** | 94.82 |
+| WNUT-17 | **97.77** | 95.58 | 95.67 | 95.30 |
+| FiNER-ORD | **91.91** | 85.01 | 89.82 | 87.41 |
+
+**Information Leakage (↓):**
 
 | Dataset | Top-sim | EMPIRE (α=0, δ=1) | EMPIRE (α=0, δ\*) |
 |---|---|---|---|
@@ -258,7 +296,7 @@ We thank the reviewer for the suggestion. We have now compared EMPIRE with a sim
 | WNUT-17 | <u>0.0841</u> | **0.0729** | 0.0886 |
 | FiNER-ORD | 0.0862 | **0.0604** | <u>0.0693</u> |
 
-EMPIRE (α=0, δ=1) achieves lower Information Leakage than Top-sim on all 8 datasets. With class-balance constraints (δ*), EMPIRE is lower on 5 of 8 datasets nd comparable on the remaining three, since it must additionally preserve the native class distribution.
+EMPIRE (α=0, δ=1) achieves lower Information Leakage than Top-sim on all 8 datasets. With class-balance constraints (δ*), EMPIRE is lower on 5 of 8 datasets nd comparable on the remaining three, since it must additionally preserve the native class distribution. 
 
 **Action:** We will add results for this baseline along with Native, MinCut and EMPIRE.
 
