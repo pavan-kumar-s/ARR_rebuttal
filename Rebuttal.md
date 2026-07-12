@@ -129,19 +129,93 @@ The narrative does not consistently match the reported numbers. The paper presen
 **Weakness-4:**
 The formulation uses only lower bounds for split size and class proportions. This ensures that each split receives at least some minimum amount of data or labels, but it does not directly enforce upper bounds or absolute deviation from the target ratios. Therefore, the formulation does not fully match the paper's claim that EMPIRE preserves predefined split ratios and semantic class proportionality.
 
+We thank the reviewer for this observation. We have experimented wth adding explicit upper-bound constraints to the formulation and re-run EMPIRE with them, and report both the theoretical and empirical resolution below. Considering the case of ϵ (which is the tolerance on the split ratio constraint), we can define the upper bound as n⋅(Pq + ϵ *⋅(1-Pq)). At ϵ=0, the upper bound collapses onto the lower bound (Pq⋅n), enforcing the exact target ratio; at ϵ=1, it relaxes to n, i.e., no constraint.
 
-**Action:** 
+Section 3.2 argued that because the total number of sentences is fixed and every split is forced to meet its minimum, no split can grow arbitrarily large. So, the upper bound is implied and can be omitted for solver efficiency. The results support this: with and without the upper-bound constraints, the realised split ratios are very close to each other, and both stay close to the native ratios. The split-quality metrics are similarly unaffected. Experimentally, therefore, there does not appear to be a need for the upper bound: the lower-bound-only formulation already produces partitions that respect the intended split ratios.
+
+
+| Dataset | Config | Disjointness | Coverage Ratio | Hellinger | Info Leakage | Leakage Ratio | Split ratio (s1) | Split ratio (s2) | Split ratio (s42) |
+|---|---|---|---|---|---|---|---|---|---|
+| FiNER-ORD | Native | 91.91 | 33.11 | 0.0280 | 0.0918 | 0.5459 | 0.688:0.085:0.227 | 0.688:0.085:0.227 | 0.688:0.085:0.227 |
+| FiNER-ORD | EMPIRE a1 e0.05 d1 | 100.00 | 0.00 | 0.1081 | 0.0917 | 0.5459 | 0.704:0.081:0.216 | 0.704:0.081:0.216 | 0.704:0.081:0.216 |
+| FiNER-ORD | EMPIRE ub a1 e0.05 d1 | 100.00 | 0.00 | 0.0935 | 0.0915 | 0.5458 | 0.704:0.081:0.216 | 0.704:0.081:0.216 | 0.654:0.130:0.216 |
+| bc2gm | Native | 89.41 | 37.84 | 0.0000 | 0.0698 | 0.5349 | 0.625:0.125:0.250 | 0.625:0.125:0.250 | 0.625:0.125:0.250 |
+| bc2gm | EMPIRE a1 e0.05 d1 | 100.00 | 0.00 | 0.0000 | 0.0625 | 0.5313 | 0.594:0.169:0.238 | 0.594:0.169:0.238 | 0.594:0.169:0.238 |
+| bc2gm | EMPIRE ub a1 e0.05 d1 | 100.00 | 0.00 | 0.0000 | 0.0624 | 0.5312 | 0.644:0.119:0.238 | 0.644:0.119:0.238 | 0.644:0.119:0.238 |
+| bc5cdr | Native | 73.22 | 72.25 | 0.0022 | 0.1187 | 0.5593 | 0.318:0.325:0.357 | 0.318:0.325:0.357 | 0.318:0.325:0.357 |
+| bc5cdr | EMPIRE a1 e0.05 d1 | 90.49 | 48.96 | 0.0046 | 0.1189 | 0.5594 | 0.352:0.308:0.340 | 0.352:0.308:0.339 | 0.352:0.308:0.339 |
+| bc5cdr | EMPIRE ub a1 e0.05 d1 | 89.49 | 52.02 | 0.0040 | 0.1188 | 0.5594 | 0.352:0.309:0.339 | 0.352:0.308:0.339 | 0.352:0.308:0.339 |
+| conll2003 | Native | 82.80 | 55.63 | 0.0221 | 0.1007 | 0.5504 | 0.677:0.157:0.166 | 0.677:0.157:0.166 | 0.677:0.157:0.166 |
+| conll2003 | EMPIRE a1 e0.05 d1 | 100.00 | 0.00 | 0.1306 | 0.0889 | 0.5445 | 0.665:0.149:0.186 | 0.691:0.150:0.159 | 0.693:0.149:0.159 |
+| conll2003 | EMPIRE ub a1 e0.05 d1 | 100.00 | 0.00 | 0.1306 | 0.0899 | 0.5450 | 0.665:0.149:0.186 | 0.693:0.149:0.158 | 0.693:0.149:0.158 |
+| crossner | Native | 87.48 | 36.87 | 0.0658 | 0.0555 | 0.5277 | 0.131:0.398:0.470 | 0.131:0.398:0.470 | 0.131:0.398:0.470 |
+| crossner | EMPIRE a1 e0.05 d1 | 99.10 | 6.89 | 0.2473 | 0.0475 | 0.5237 | 0.125:0.379:0.496 | 0.125:0.400:0.475 | 0.125:0.380:0.496 |
+| crossner | EMPIRE ub a1 e0.05 d1 | 98.85 | 7.84 | 0.2074 | 0.0504 | 0.5252 | 0.125:0.378:0.497 | 0.125:0.399:0.476 | 0.125:0.389:0.487 |
+| jnlpba | Native | 93.42 | 43.71 | 0.0501 | 0.1758 | 0.5879 | 0.828:0.172 | 0.828:0.172 | 0.828:0.172 |
+| jnlpba | EMPIRE a1 e0.05 d1 | 100.00 | 0.00 | 0.0768 | 0.1426 | 0.5713 | 0.836:0.164 | 0.836:0.164 | 0.836:0.164 |
+| jnlpba | EMPIRE ub a1 e0.05 d1 | 100.00 | 0.00 | 0.0847 | 0.1285 | 0.5643 | 0.836:0.164 | 0.836:0.164 | 0.835:0.165 |
+| ncbi_disease | Native | 86.52 | 57.39 | 0.0000 | 0.1906 | 0.5953 | 0.744:0.127:0.129 | 0.744:0.127:0.129 | 0.744:0.127:0.129 |
+| ncbi_disease | EMPIRE a1 e0.05 d1 | 100.00 | 0.00 | 0.0000 | 0.1858 | 0.5929 | 0.732:0.120:0.148 | 0.733:0.121:0.146 | 0.718:0.155:0.128 |
+| ncbi_disease | EMPIRE ub a1 e0.05 d1 | 100.00 | 0.00 | 0.0000 | 0.1848 | 0.5924 | 0.737:0.140:0.123 | 0.743:0.134:0.123 | 0.742:0.129:0.129 |
+| wnut | Native | 97.77 | 6.23 | 0.1161 | 0.0844 | 0.5422 | 0.596:0.177:0.226 | 0.596:0.177:0.226 | 0.596:0.177:0.226 |
+| wnut | EMPIRE a1 e0.05 d1 | 100.00 | 0.00 | 0.0435 | 0.1053 | 0.5527 | 0.574:0.171:0.255 | 0.567:0.216:0.218 | 0.567:0.213:0.220 |
+| wnut | EMPIRE ub a1 e0.05 d1 | 100.00 | 0.00 | 0.0384 | 0.1052 | 0.5526 | 0.567:0.169:0.265 | 0.567:0.189:0.244 | 0.567:0.212:0.221 |
+
+
+| Dataset | Method | D.S. (%) ↑ | ECR (%) ↓ | Hellinger ↓ | I.L. ↓ |
+|---|---|---|---|---|---|
+| JNLPBA | Native | 93.42 | 43.71 | 0.050 | 0.176 |
+| | EMPIRE (no UB) | 100.00 | 0.00 | 0.077 | 0.143 |
+| | EMPIRE (with UB) | 100.00 | 0.00 | 0.085 | 0.129 |
+| BC5CDR | Native | 73.22 | 72.25 | 0.002 | 0.119 |
+| | EMPIRE (no UB) | 90.49 | 48.96 | 0.005 | 0.119 |
+| | EMPIRE (with UB) | 89.49 | 52.02 | 0.004 | 0.119 |
+| NCBI-Disease | Native | 86.52 | 57.39 | 0.000 | 0.191 |
+| | EMPIRE (no UB) | 100.00 | 0.00 | 0.000 | 0.186 |
+| | EMPIRE (with UB) | 100.00 | 0.00 | 0.000 | 0.185 |
+| BC2GM | Native | 89.41 | 37.84 | 0.000 | 0.070 |
+| | EMPIRE (no UB) | 100.00 | 0.00 | 0.000 | 0.063 |
+| | EMPIRE (with UB) | 100.00 | 0.00 | 0.000 | 0.062 |
+| CoNLL2003 | Native | 82.80 | 55.63 | 0.022 | 0.101 |
+| | EMPIRE (no UB) | 100.00 | 0.00 | 0.131 | 0.089 |
+| | EMPIRE (with UB) | 100.00 | 0.00 | 0.131 | 0.090 |
+| CrossNER | Native | 87.48 | 36.87 | 0.066 | 0.055 |
+| | EMPIRE (no UB) | 99.10 | 6.89 | 0.247 | 0.047 |
+| | EMPIRE (with UB) | 98.85 | 7.84 | 0.207 | 0.050 |
+| WNUT-17 | Native | 97.77 | 6.23 | 0.116 | 0.084 |
+| | EMPIRE (no UB) | 100.00 | 0.00 | 0.044 | 0.105 |
+| | EMPIRE (with UB) | 100.00 | 0.00 | 0.038 | 0.105 |
+| FiNER-ORD | Native | 91.91 | 33.11 | 0.028 | 0.092 |
+| | EMPIRE (no UB) | 100.00 | 0.00 | 0.108 | 0.093 |
+| | EMPIRE (with UB) | 100.00 | 0.00 | 0.093 | 0.092 |
+
+
 
 **Weakness-5:**
 The empirical comparison is mainly against Native and MinCut. This is not enough to establish that EMPIRE is the best or most useful way to jointly reduce entity and context leakage while preserving class balance. The paper dismisses DataSAIL as unsuitable for NER because NER instances may contain multiple entities, but it does not compare against an adapted similarity-aware or stratified splitting baseline.
 
 
+The reviewer is right that we haven’t compared EMPIRE with any similarity-aware baseline. Hence, we have implemented one (Top-sim). For each sentence, we compute its maximum cosine similarity to any other sentence in the corpus, sort all sentences in ascending order of this value, and fill the test, validation, and training partitions in that order. The most isolated sentences (those with no near-duplicate elsewhere in the corpus) are therefore assigned to the test and eval sets, while sentences with close neighbours are retained together in training. Split sizes are fixed to the native sizes, so the split ratio is preserved exactly.
 
-**Action:** 
+| Dataset | Top-sim | EMPIRE (α=0, δ=1) | EMPIRE (α=0, δ\*) |
+|---|---|---|---|
+| JNLPBA | <u>0.1424</u> | **0.1096** | 0.1533 |
+| BC5CDR | 0.1148 | <u>0.0987</u> | **0.0971** |
+| NCBI-Disease | 0.1636 | **0.1262** | <u>0.1299</u> |
+| BC2GM | <u>0.0483</u> | **0.0297** | 0.0496 |
+| CoNLL-2003 | 0.0632 | **0.0391** | <u>0.0600</u> |
+| CrossNER | 0.0539 | **0.0328** | <u>0.0454</u> |
+| WNUT-17 | <u>0.0841</u> | **0.0729** | 0.0886 |
+| FiNER-ORD | 0.0862 | **0.0604** | <u>0.0693</u> |
+
+EMPIRE (α=0, δ=1) achieves lower Information Leakage than Top-sim on all 8 datasets. With class-balance constraints (δ*), EMPIRE is lower on 5 of 8 datasets nd comparable on the remaining three, since it must additionally preserve the native class distribution.
+
 
 **Weakness-6:**
 Although page limits are maxima rather than minima, I found the use of space somewhat concerning. The paper is submitted as a long-paper-style contribution, but the main technical and empirical content ends before using the full main-content budget, while several essential details are missing. Since the Limitations section does not count toward the ARR page limit, these omissions are difficult to justify as space constraints.
 
 
 **Action:** 
+
+
 
