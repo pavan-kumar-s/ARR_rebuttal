@@ -73,7 +73,7 @@ For all the EMPIRE experiments, we set ε=0 and δ=1, so that the splits preserv
 | CoNLL2003 | 0.716 | 0.543 | 0.522 | 0.607 | **0.434** |
 | CrossNER | 0.253 | **0.002** | 0.063 | 0.050 | 0.136 |
 | WNUT-17 | 0.016 | 0.015 | 0.028 | **0.008** | 0.085 |
-| FiNER-ORD | 0.572 | 0.409 | 0.558 | **0.635** | 0.391 |
+| FiNER-ORD | 0.572 | 0.409 | 0.558 | 0.635 | **0.391** |
 
 On 6 of 8 datasets (JNLPBA, NCBI-Disease, BC2GM, CoNLL2003, WNUT-17, FiNER-ORD), at least one EMPIRE configuration yields a lower test F1 than both Native and MinCut. 
 
@@ -270,7 +270,7 @@ We thank the reviewer for the suggestion. We have now compared EMPIRE with a sim
 5. Hence, the most isolated sentences (those with no near-duplicate elsewhere in the corpus) are assigned to the test and eval sets, while sentences with some close neighbour are put in training
 6. Split sizes are fixed to the native sizes, so the split ratio is preserved exactly.
 
-**Entity Disjointness (%) (↑):**
+****Entity Disjointness (%) (↑):**
 
 | Dataset | Native | Top-sim | EMPIRE (α=0, δ=1) | EMPIRE (α=0, δ\*) |
 |---|---|---|---|---|
@@ -294,7 +294,7 @@ We thank the reviewer for the suggestion. We have now compared EMPIRE with a sim
 | CoNLL-2003 | 0.0632 | **0.0391** | <u>0.0600</u> |
 | CrossNER | 0.0539 | **0.0328** | <u>0.0454</u> |
 | WNUT-17 | <u>0.0841</u> | **0.0729** | 0.0886 |
-| FiNER-ORD | 0.0862 | **0.0604** | <u>0.0693</u> |
+| FiNER-ORD | 0.0862 | **0.0604** | <u>0.0693</u> |**
 
 EMPIRE (α=0, δ=1) achieves lower Information Leakage than Top-sim on all 8 datasets. With class-balance constraints (δ*), EMPIRE is lower on 5 of 8 datasets nd comparable on the remaining three, since it must additionally preserve the native class distribution. 
 
