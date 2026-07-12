@@ -270,7 +270,7 @@ We thank the reviewer for the suggestion. We have now compared EMPIRE with a sim
 5. Hence, the most isolated sentences (those with no near-duplicate elsewhere in the corpus) are assigned to the test and eval sets, while sentences with some close neighbour are put in training
 6. Split sizes are fixed to the native sizes, so the split ratio is preserved exactly.
 
-****Entity Disjointness (%) (↑):**
+**Entity Disjointness (%) (↑):**
 
 | Dataset | Native | Top-sim | EMPIRE (α=0, δ=1) | EMPIRE (α=0, δ\*) |
 |---|---|---|---|---|
