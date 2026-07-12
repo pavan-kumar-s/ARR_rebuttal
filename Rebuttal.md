@@ -137,7 +137,7 @@ On the concern that the **Table 4 improvements are numerically small**: we trace
 | WNUT-17 | <u>0.084</u> | 0.105 | **0.073** | 0.089 | 0.093 | 0.096 | 0.105 | 0.106 |
 | FiNER-ORD | 0.092 | 0.093 | **0.060** | <u>0.069</u> | 0.083 | 0.083 | 0.092 | 0.093 |
 
-At α=0, EMPIRE reduces I.L. by **14–61% over Native (≈37% on average)** across all 8 datasets, so the improvements are no longer numerically small.\
+At α=0, EMPIRE reduces I.L. by **14–61% over Native (≈37% on average)** across all 8 datasets, so the improvements are no longer numerically small.
 
 
 On the validation of I.L. as a measure of context leakage: TO BE DONE
