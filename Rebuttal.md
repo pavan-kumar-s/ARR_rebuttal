@@ -83,7 +83,7 @@ On 6 of 8 datasets (JNLPBA, NCBI-Disease, BC2GM, CoNLL2003, WNUT-17, FiNER-ORD),
 
 **Limitations:** These runs use a single seed per configuration. We therefore present this as a preliminary result and rely only on the relative ordering across splits.
 
-**Action:**  TO BE DONE
+**Action:**  We will add this train-and-evaluate experiment as a new subsection, and re-run the full grid with multiple seeds (mean ± std).
 
 **Weakness-3:**
 There are some inconsistency between what authors claim and they reported. Eg., information leakage values are nearly flat across all methods, but it says 'drastically reduce context contamination'.
@@ -117,7 +117,6 @@ We thank the reviewer for their valuable feedback.
 
 **Weakness-1:**
 The paper motivates EMPIRE as a way to obtain more reliable estimates of NER generalization, but the experiments only evaluate properties of the generated splits. The paper does not train or evaluate any NER model on the native, MinCut, and EMPIRE splits. As a result, it remains unclear whether the proposed split metrics actually translate into more reliable estimates of model generalization.
-
 
 **Action:**  TO BE DONE
 
