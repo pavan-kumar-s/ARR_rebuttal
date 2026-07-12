@@ -58,9 +58,32 @@ We thank the reviewer for this suggestion. We have extended the evaluation from 
 **Weakness-2:**
 The authors must add a train-and-evaluate experiment showing the leakage reduction changes measured model performance.
 
+We thank the reviewer for their input. To address this concern, we have trained and evaluated a model for some select configurations.
 
+We train a BiLSTM-CRF on the splits produced by each method, holding the model and hyperparameters fixed throughout (BioLinkBERT embeddings/tokenizer for the biomedical datasets, ModernBERT for the general-domain ones; lr=0.01, dropout 0.2, batch 2048, Adam, WSD schedule with 0.1 warmup / 0.2 decay, 100 epochs, early stopping at patience 10). Lower F1 should indicate a less inflated estimate of generalisation.
 
-**Action:** 
+For all the EMPIRE experiments, we set ε=0 and δ=1, so that the splits preserve the native split ratios and the training-set size is held constant across methods, isolating the effect of leakage reduction on measured F1. δ=1 relaxes the class-proportionality constraint, matching MinCut, which does not enforce it either.
+
+| Dataset | Native | MinCut | EMPIRE α=0 | EMPIRE α=0.5 | EMPIRE α=1 |
+|---|---|---|---|---|---|
+| JNLPBA | 0.644 | 0.536 | 0.619 | 0.639 | **0.393** |
+| BC5CDR | 0.744 | **0.350** | 0.827 | 0.823 | 0.759 |
+| NCBI-Disease | 0.692 | 0.467 | 0.601 | 0.565 | **0.292** |
+| BC2GM | 0.660 | 0.512 | 0.459 | **0.347** | 0.462 |
+| CoNLL2003 | 0.716 | 0.543 | 0.522 | 0.607 | **0.434** |
+| CrossNER | 0.253 | **0.002** | 0.063 | 0.050 | 0.136 |
+| WNUT-17 | 0.016 | 0.015 | 0.028 | **0.008** | 0.085 |
+| FiNER-ORD | 0.572 | 0.409 | 0.558 | **0.635** | 0.391 |
+
+On 6 of 8 datasets (JNLPBA, NCBI-Disease, BC2GM, CoNLL2003, WNUT-17, FiNER-ORD), at least one EMPIRE configuration yields a lower test F1 than both Native and MinCut. 
+
+**No single configuration is uniformly best.** The α that yields the lowest F1 varies by dataset (α=1 on JNLPBA, NCBI-Disease and CoNLL2003; α=0.5 on BC2GM). This could mean that the type of leakage that is dominant differs across the datasets. We can explore how to determine which dataset characteristics predict the best α in future work. EMPIRE's contribution is that α makes this choice explicit and controllable.
+
+**Where the effect does not appear:** On BC5CDR, no EMPIRE setting reduces F1 below Native at any α. We do not have an explanation, and suspect it reflects a property of the dataset and warrants further investigation. On WNUT-17, F1 is very low under every method including Native (0.016), which is expected given the benchmark is built from rare, previously-unseen entities.
+
+**Limitations:** These runs use a single seed per configuration. We therefore present this as a preliminary result and rely only on the relative ordering across splits.
+
+**Action:**  TO BE DONE
 
 **Weakness-3:**
 There are some inconsistency between what authors claim and they reported. Eg., information leakage values are nearly flat across all methods, but it says 'drastically reduce context contamination'.
@@ -96,8 +119,7 @@ We thank the reviewer for their valuable feedback.
 The paper motivates EMPIRE as a way to obtain more reliable estimates of NER generalization, but the experiments only evaluate properties of the generated splits. The paper does not train or evaluate any NER model on the native, MinCut, and EMPIRE splits. As a result, it remains unclear whether the proposed split metrics actually translate into more reliable estimates of model generalization.
 
 
-
-**Action:** 
+**Action:**  TO BE DONE
 
 **Weakness-2:**
 The paper defines context leakage as memorization of repeated syntactic or semantic patterns, but operationalizes it as average cosine similarity between cross-split sentence embeddings. This is a plausible heuristic, but the paper does not validate that this metric captures the harmful form of context memorization described in Figure 1. Moreover, the improvements in Table 4 are often numerically small.
@@ -116,6 +138,7 @@ On the concern that the **Table 4 improvements are numerically small**: we trace
 | FiNER-ORD | 0.092 | 0.093 | **0.060** | <u>0.069</u> | 0.083 | 0.083 | 0.092 | 0.093 |
 
 At α=0, EMPIRE reduces I.L. by **14–61% over Native (≈37% on average)** across all 8 datasets, so the improvements are no longer numerically small.\
+
 
 On the validation of I.L. as a measure of context leakage: TO BE DONE
 
