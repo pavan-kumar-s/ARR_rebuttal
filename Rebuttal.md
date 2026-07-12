@@ -51,7 +51,7 @@ We thank the reviewer for their valuable feedback.
 **Weakness-1:**
 It is only evaluated on four NER datasets: JNLPBA, BC5CDR, CoNLL2003, CrossNER. There are other benchmarks, the authors must extend their experiments on those benchmarks too.
 
-We thank the reviewer for this suggestion. We have extended the evaluation from 4 to **8 NER datasets**, adding four new benchmarks spanning both domains: NCBI-Disease and BC2GM (biomedical), and WNUT-17 and FiNER-ORD (general/financial). EMPIRE's behavior is consistent on the new datasets — e.g., at α=0 the Information Leakage drops from 0.191→0.126 on NCBI-Disease (−34%), 0.070→0.030 on BC2GM (−58%), and 0.092→0.060 on FiNER-ORD (−35%) relative to Native splits, matching the trends on the original four. 
+We thank the reviewer for this suggestion. We have extended the evaluation from 4 to **8 NER datasets**, adding four new benchmarks spanning both domains: NCBI-Disease and BC2GM (biomedical), and WNUT-17 and FiNER-ORD (general/financial). EMPIRE's behavior is consistent on the new datasets — e.g., at α=0 the Information Leakage drops from 0.191→0.126 on NCBI-Disease (−34%), 0.070→0.030 on BC2GM (−58%), and 0.092→0.060 on FiNER-ORD (−35%) relative to Native splits, matching the trends on the original four (check response to **Reviewer nw2z** on **Weakness 1**).
 
 **Action:** We will extend all main tables (Tables 1–4) to the full set of 8 datasets in the revised version and update the dataset description in Section 4.1.
 
@@ -79,7 +79,7 @@ On 6 of 8 datasets (JNLPBA, NCBI-Disease, BC2GM, CoNLL2003, WNUT-17, FiNER-ORD),
 
 **No single configuration is uniformly best.** The α that yields the lowest F1 varies by dataset (α=1 on JNLPBA, NCBI-Disease and CoNLL2003; α=0.5 on BC2GM). This could mean that the type of leakage that is dominant differs across the datasets. We can explore how to determine which dataset characteristics predict the best α in future work. EMPIRE's contribution is that α makes this choice explicit and controllable.
 
-**Where the effect does not appear:** On BC5CDR, no EMPIRE setting reduces F1 below Native at any α. We do not have an explanation, and suspect it reflects a property of the dataset and warrants further investigation. On WNUT-17, F1 is very low under every method including Native (0.016), which is expected given the benchmark is built from rare, previously-unseen entities.
+**Where the effect does not appear:** On WNUT-17, F1 is very low under every method including Native (0.016), which is expected given the benchmark is built from rare, previously-unseen entities. On BC5CDR, no EMPIRE setting reduces F1 below Native at any α. We do not have an explanation, and suspect it reflects a property of the dataset and warrants further investigation. 
 
 **Limitations:** These runs use a single seed per configuration. We therefore present this as a preliminary result and rely only on the relative ordering across splits.
 
