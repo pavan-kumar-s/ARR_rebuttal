@@ -67,7 +67,7 @@ DataSAIL does permit multi-class membership, and it enforces stratification for 
 
 **The formal gap.** The class-stratification constraint in DataSAIL is
 
-> **(1)** ∑_{x ∈ D_i ∩ D^{c}} κ(x) ≥ (1 − δ) · s_i · n^c  for every split i and class c
+> **Equation (1)** ∑_{x ∈ D_i ∩ D^{c}} κ(x) ≥ (1 − δ) · s_i · n^c  for every split i and class c
 
 where:
 
@@ -80,7 +80,7 @@ The weight κ is indexed by the element alone, **κ : D → ℕ≥1**, and equal
 
 Mention-level balance requires the same constraint with the weight indexed by the **pair** — κ(x, c), the number of mentions of class c in element x. We collect these in the **class matrix** A ∈ ℕ^{|D| × C}, with A_{x,c} := κ(x, c). Our constraint is then
 
-> **(2)** ∑_{x ∈ D_i} A_{x,c} ≥ (1 − δ) · s_i · n^c, with n^c := ∑_{x ∈ D} A_{x,c}  for every split i and class c
+> **Equation (2)** ∑_{x ∈ D_i} A_{x,c} ≥ (1 − δ) · s_i · n^c, with n^c := ∑_{x ∈ D} A_{x,c}  for every split i and class c
 
 The sum runs over all of D_i rather than D_i ∩ D^{c}: A_{x,c} = 0 for any element with no class-c mention, so the set-membership test is no longer needed.
 
@@ -94,7 +94,7 @@ The sum runs over all of D_i rather than D_i ∩ D^{c}: A_{x,c} = 0 for any elem
 | `PER` | 5 | 5 | 5 | 4 | 4 | 4 | 1 | 1 | 1 | 1 | 1 | 1 | 33 |
 | `ORG` | 1 | 1 | 1 | 1 | 1 | 1 | 5 | 5 | 5 | 4 | 4 | 4 | 33 |
 
-Every sentence contains both classes, so n^c = 12 under **Equation (1)** and n^c = 33 under **Equation (2)**. At δ = 0 this makes **(1)** require ≥ 8 train and ≥ 4 test *sentences* per class, and **(2)** require ≥ 22 train and ≥ 11 test *mentions* per class. Compare
+Every sentence contains both classes, so n^c = 12 under **Equation (1)** and n^c = 33 under **Equation (2)**. At δ = 0 this makes **Equation (1)** require ≥ 8 train and ≥ 4 test *sentences* per class, and **Equation (2)** require ≥ 22 train and ≥ 11 test *mentions* per class. Compare
 
 - **Split A** — train = {s1, …, s8}
 - **Split B** — train = {s1, s2, s4, s5, s7, s8, s10, s11}
@@ -102,16 +102,22 @@ Every sentence contains both classes, so n^c = 12 under **Equation (1)** and n^c
 | | Split A | Split B |
 |---|---|---|
 | Sentences (train / test) | 8 / 4 | 8 / 4 |
-| **(1)** DataSAIL, `PER` (train / test) | 8 ≥ 8, 4 ≥ 4 — **satisfied at δ = 0** | 8 ≥ 8, 4 ≥ 4 — **satisfied at δ = 0** |
-| **(1)** DataSAIL, `ORG` (train / test) | 8 ≥ 8, 4 ≥ 4 — **satisfied at δ = 0** | 8 ≥ 8, 4 ≥ 4 — **satisfied at δ = 0** |
+| **Equation (1)** DataSAIL, `PER` (train / test) | 8 ≥ 8, 4 ≥ 4 — **satisfied at δ = 0** | 8 ≥ 8, 4 ≥ 4 — **satisfied at δ = 0** |
+| **Equation (1)** DataSAIL, `ORG` (train / test) | 8 ≥ 8, 4 ≥ 4 — **satisfied at δ = 0** | 8 ≥ 8, 4 ≥ 4 — **satisfied at δ = 0** |
 | `PER` mentions (train / test) | **29 / 4** | 22 / 11 |
 | `ORG` mentions (train / test) | **16 / 17** | 22 / 11 |
-| **(2)** EMPIRE, `PER` (train / test) | 29 ≥ 22, **4 ≥ 11 fails** — **infeasible at δ = 0** | 22 ≥ 22, 11 ≥ 11 — **satisfied at δ = 0** |
-| **(2)** EMPIRE, `ORG` (train / test) | **16 ≥ 22 fails**, 17 ≥ 11 — **infeasible at δ = 0** | 22 ≥ 22, 11 ≥ 11 — **satisfied at δ = 0** |
+| **Equation (2)** EMPIRE, `PER` (train / test) | 29 ≥ 22, **4 ≥ 11 fails** — **infeasible at δ = 0** | 22 ≥ 22, 11 ≥ 11 — **satisfied at δ = 0** |
+| **Equation (2)** EMPIRE, `ORG` (train / test) | **16 ≥ 22 fails**, 17 ≥ 11 — **infeasible at δ = 0** | 22 ≥ 22, 11 ≥ 11 — **satisfied at δ = 0** |
 
-Both splits satisfy **(1)** exactly, at its tightest setting δ = 0, for both classes: to DataSAIL they are indistinguishable. Under **(2)** they are not. Split A leaves training 16 of the 33 `ORG` mentions — 48% against a 67% target — and leaves the test set just 4 of the 33 `PER` mentions, 12% against 33%. A model evaluated on it scores poorly on `ORG` for want of training support, and its `PER` score rests on four test mentions; neither has anything to do with whether the test entities are unseen. That is the confound of our Section 5.4, reintroduced by a constraint reporting zero violation. Split B is the same 8 / 4 sentence split, equally admissible to DataSAIL, and meets **(2)** exactly at 22 / 11 for both classes. DataSAIL cannot distinguish A from B; our formulation rejects A and admits B.
+Both splits satisfy **Equation (1)** exactly, at its tightest setting δ = 0, for both classes: to DataSAIL they are indistinguishable. Under **Equation (2)** they are not. Split A leaves training 16 of the 33 `ORG` mentions — 48% against a 67% target — and leaves the test set just 4 of the 33 `PER` mentions, 12% against 33%. A model evaluated on it scores poorly on `ORG` for want of training support, and its `PER` score rests on four test mentions; neither has anything to do with whether the test entities are unseen. That is the confound of our Section 5.4, reintroduced by a constraint reporting zero violation. Split B is the same 8 / 4 sentence split, equally admissible to DataSAIL, and meets **Equation (2)** exactly at 22 / 11 for both classes. DataSAIL cannot distinguish A from B; our formulation rejects A and admits B.
 
-**On the question asked.** For NER, EMPIRE's contribution is not separable from class balancing, because the class-balance quantity that matters is mention support. Section 5.4 shows mention support drives the apparent F1 drop; no published splitter, DataSAIL included, constrains it. The contribution is a formulation in which that quantity is expressible, plus the evidence that controlling it changes which conclusions a leakage-reduced evaluation supports.
+**On the question asked.** EMPIRE's contribution has two parts, and neither reduces to adding class balance to an existing splitter.
+
+**The objective.** DataSAIL minimises similarity-induced leakage; MinCut removes entity overlap; TopSim targets similarity alone. None of them targets both. EMPIRE optimises entity isolation and context dissimilarity *jointly*, in a single integer program weighted by α, so the two leakage types are traded off explicitly rather than one being controlled and the other left to whatever the first happens to produce. This is also what makes the central question of the paper askable at all — which kind of leakage is responsible for inflated NER scores — since answering it requires sweeping α between the two endpoints under otherwise identical constraints.
+
+**The constraint.** For NER the class-balance quantity that matters is mention support, not sentence membership, and **Equation (2)** is what expresses it. Section 5.4 shows that mention support drives the apparent F1 drop; no published splitter, DataSAIL included, constrains it.
+
+The contribution is a formulation in which both leakage types and that quantity are jointly expressible, plus the evidence that controlling them changes which conclusions a leakage-reduced evaluation supports.
 
 **Action:** We will (i) correct the inaccurate "one label per sample" justification in Sections 1–2 and replace it with the κ(x) vs. κ(x, c) distinction above, and (ii) add the degeneracy argument and worked example to Appendix [[A.x]].
 
