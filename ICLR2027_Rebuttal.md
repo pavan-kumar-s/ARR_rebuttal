@@ -61,16 +61,75 @@ We thank the reviewer for their valuable feedback, and in particular for recogni
 >
 > [1] Joeres, R., Blumenthal, D.B. & Kalinina, O.V. Data splitting to avoid information leakage with DataSAIL. Nat Commun 16, 3337 (2025).
 
-[[RESPONSE. Two parts are needed, and the second is what decides this point:
- (i) concede that the stated reason for excluding DataSAIL — one label per sample — is incorrect, since DataSAIL permits multiple class memberships (Joeres et al. 2025, Eq. 4), and state the actual formal distinction: per-class mention multiplicities and entity-identity isolation vs. what similarity-aware stratification already provides;
- (ii) give the empirical answer to "what is the contribution beyond class balancing" — a baseline run under EMPIRE's own size and class-support constraints. A formal distinction alone will not answer the question as asked.
-This reviewer has the highest confidence of the four (4), so this response carries the most weight.]]
+The reviewer is right that our stated reason for setting DataSAIL aside is wrong. DataSAIL does not assume one label per sample: Joeres et al. define the class assignment as a **set** σ(x) ⊆ [C], explicitly allowing membership in several classes, and their stratification constraint (Eq. 4) is enforced for every class independently. We withdraw that claim and have corrected Sections 1–2.
+
+The distinction we should have drawn is not about multi-label capability, which DataSAIL has, but about **what quantity the stratification constraint conserves**. We state it precisely, then give a corpus on which the difference is not a matter of degree.
+
+**The formal gap.** DataSAIL's stratification constraint is
+
+> ∑_{x ∈ D_i^π ∩ D_{t=r}^{σ=c}} κ(x)  ≥  (1 − δ) · s_i · n_r^c,    D_{t=r}^{σ=c} := { x ∈ D_{t=r} | c ∈ σ(x) }
+
+where κ(x) ∈ ℕ≥1 is the **cardinality of the data element** — equal to 1 for every elementary data point, and greater than 1 only when x is a cluster (κ_C(A) = ∑_{x∈A} κ(x)).
+
+The weight κ is therefore indexed by the element alone, **κ : D → ℕ≥1**, and the class enters only through the set-membership test `c ∈ σ(x)`. A sentence contributes the *same* κ(x) to the constraint for every class it touches. So Eq. 4 conserves **how many sentences contain at least one mention of class c** — a sentence-level, binary quantity.
+
+NER requires conserving **how many mentions of class c** each split receives. A sentence with twelve `PER` mentions and one `ORG` mention must count as twelve toward `PER` and one toward `ORG`. Expressing that needs a weight indexed by the **pair**, **κ : D × [C] → ℕ≥0**, which is what our Eq. (4) uses (m_{s,t}, the number of mentions of class t in sentence s). DataSAIL has no such object. The two formulations coincide exactly when every sentence carries exactly one mention in total — i.e. when NER is reduced to sentence classification.
+
+**Why κ cannot simply be set to the mention count.** The natural rescue — pass κ(x) = (number of entity mentions in sentence x) — fails for three independent reasons, because κ is used in three places at once:
+
+1. **κ is shared across classes.** There is one scalar per sentence, serving every c ∈ σ(x). A sentence with 12 `PER` and 1 `ORG` has a single κ. Setting κ = 13 tells the `ORG` constraint the sentence carries 13 `ORG` mentions.
+2. **κ is the split-size weight.** Eq. 3 uses the same κ, with n_r = ∑ κ(x). Setting κ to the mention count makes the split-ratio constraint preserve the *mention* ratio instead of the *sentence* ratio, so exact split sizes — the property this reviewer asks about in Question 1 — are lost.
+3. **κ is the leakage weight.** The objective is L(π) = ∑ sim(x,x′)·κ(x)·κ(x′). Mention-count weights would let entity-dense sentences dominate the similarity objective quadratically, changing what is being minimised.
+
+κ is thus triply overloaded, and no single assignment satisfies all three roles. Separating them is exactly what our formulation does.
+
+**A corpus on which Eq. 4 is vacuous.** The gap is not merely a loss of resolution. Whenever every sentence contains at least one mention of every class — so σ(x) = [C] for all x — we have D^{σ=c} = D and n^c = n for every c, and Eq. 4 becomes
+
+> ∑_{x ∈ D_i^π} κ(x) ≥ (1 − δ) · s_i · n,
+
+which is Eq. 3 with δ in place of ε. **Every class constraint collapses onto the split-size constraint**, and stratification imposes nothing beyond it, for any κ and any δ. This is a property of the formulation, not of the solver or the tolerance.
+
+Consider 12 sentences, two classes, a 50/50 split, and mention counts (`PER`, `ORG`):
+
+| | s1 | s2 | s3 | s4 | s5 | s6 | s7 | s8 | s9 | s10 | s11 | s12 | total |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `PER` | 5 | 5 | 5 | 4 | 4 | 4 | 1 | 1 | 1 | 1 | 1 | 1 | 33 |
+| `ORG` | 1 | 1 | 1 | 1 | 1 | 1 | 5 | 5 | 5 | 4 | 4 | 4 | 33 |
+
+Every sentence contains both classes, so σ(x) = {`PER`, `ORG`} throughout. Take **Split A**: train = {s1…s6}, test = {s7…s12}.
+
+| | Split A | Split B |
+|---|---|---|
+| Sentences (train/test) | 6 / 6 | 6 / 6 |
+| DataSAIL Eq. 4, `PER` | 6 ≥ 6 — satisfied at **δ = 0** | 6 ≥ 6 — satisfied at **δ = 0** |
+| DataSAIL Eq. 4, `ORG` | 6 ≥ 6 — satisfied at **δ = 0** | 6 ≥ 6 — satisfied at **δ = 0** |
+| `PER` mentions (train/test) | **27 / 6** | 18 / 15 |
+| `ORG` mentions (train/test) | **6 / 27** | 18 / 15 |
+| EMPIRE Eq. (4), δ = 0.1 | `ORG`: 6 < 14.85 — **infeasible** | 18 ≥ 14.85 — feasible |
+
+Split A satisfies DataSAIL's stratification constraint **exactly, at its tightest possible setting δ = 0**, for both classes. Yet training sees 6 of the 33 `ORG` mentions (18%, against a 50% target) while the test set is 82% `ORG` by mass. A model evaluated on this split will score poorly on `ORG` because it was given a quarter of the expected training support — not because the test entities are unseen. That is precisely the confound our Section 5.4 identifies, reintroduced by a constraint that reports zero violation.
+
+Split B is the same 6/6 sentence split and is equally admissible to DataSAIL, but satisfies the mention-level constraint (18/15 for both classes). DataSAIL's formulation cannot distinguish A from B; ours rejects A and admits B.
+
+**How often this arises in practice.** The fully degenerate case (σ(x) = [C] for all x) is the extreme; the loss is proportional to class co-occurrence in general. We report, for each of the 24 datasets:
+
+| Dataset | C | Mentions/sentence (mean) | % sentences with ≥2 mentions of one class | % sentences containing ≥1 of every class | max_c \|sentence-share − mention-share\| |
+|---|---|---|---|---|---|
+| [[ ]] | [[ ]] | [[ ]] | [[ ]] | [[ ]] | [[ ]] |
+
+[[The final column is the decisive statistic: the largest discrepancy, over classes, between the fraction of class-c *sentences* a split assigns to training (what DataSAIL controls) and the fraction of class-c *mentions* it assigns (what determines training support). Report it under DataSAIL's own splits. Expect it to be largest on the dense, low-class-count corpora — BC5CDR has C = 2 — which is also where our α = 0.5 result is weakest.]]
+
+**Empirical comparison.** The argument above explains why a gap should exist; it does not substitute for measuring one. We have therefore run DataSAIL as a baseline on all 24 datasets, under the same split ratios and the same similarity inputs:
 
 | Dataset | Native | MinCut | MinCut + constraints | TopSim | DataSAIL | EMPIRE (α=1, δ\*) | EMPIRE (α=0, δ\*) |
 |---|---|---|---|---|---|---|---|
 | [[ ]] | [[ ]] | [[ ]] | [[ ]] | [[ ]] | [[ ]] | [[ ]] | [[ ]] |
 
-**Action:** [[Correct the DataSAIL characterisation in §1–2; add DataSAIL and a constraint-matched baseline to Tables [[N]].]]
+[[Report per-class mention support and Hellinger drift alongside disjointness, since mention-level balance is the quantity in dispute — disjointness alone will not show the difference.]]
+
+**On the reviewer's framing.** The question was what EMPIRE contributes beyond showing that class balancing helps. Our answer is that for NER the two are not separable: the class-balance quantity that matters is mention support, our own Section 5.4 shows that mention support is what drives the apparent F1 drop, and no published splitter — DataSAIL included — constrains it. The contribution is a formulation in which that quantity is expressible, together with the evidence that controlling it changes which conclusions a leakage-reduced evaluation supports.
+
+**Action:** We will (i) remove the incorrect "one label per sample" claim from Sections 1–2 and replace it with the κ(x) vs. κ(x, c) distinction above, (ii) add DataSAIL as a baseline to Tables [[N]], (iii) add the co-occurrence statistics table to Section 4.1, and (iv) add the degeneracy argument and worked example to Appendix [[A.x]].
 
 **Weakness-2:**
 > How can authors conclude that context leakage has little effect when TopSim lowers F1 by 8.5 points while barely changing their metric? Could averaging similarity across all sentence pairs hide the near duplicates that actually help the model?
