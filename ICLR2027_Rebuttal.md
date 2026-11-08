@@ -189,13 +189,34 @@ We thank the reviewer for an exceptionally thorough review. Several of the point
 **Weakness-1(a) — Distinction from DataSAIL rests on an incorrect premise:**
 > The distinction from closely related methods is based partly on an incorrect premise. Sections 1–2 exclude DataSAIL because it supposedly assumes one label per sample. However, DataSAIL explicitly allows multiple class memberships and combines similarity-aware splitting with stratification, size constraints, clustering, and integer programming (Joeres et al., 2025, Eq. 4). This does not make it equivalent to EMPIRE's entity-isolation and mention-count formulation, but the paper needs to establish those specific differences rather than exclude the framework on incorrect grounds. Since MinCut and TopSim do not enforce comparable class constraints, their worse class preservation also does not isolate the benefit of EMPIRE's particular formulation from the benefit of adding such constraints.
 
-[[RESPONSE. Concede the incorrect premise in the first sentence. Then both halves of what the reviewer asks for: the specific formal differences from similarity-aware stratified splitting, and a baseline run under comparable size and class constraints so that EMPIRE's formulation is separated from the generic benefit of adding constraints. Use the same baseline table and numbers as in the QoTi and fYPh responses.]]
+We thank the reviewer. There are two separate claims here, and we take them in turn.
 
-| Dataset | Native | MinCut | MinCut + constraints | TopSim | DataSAIL | EMPIRE (α=1, δ\*) | EMPIRE (α=0, δ\*) |
-|---|---|---|---|---|---|---|---|
-| [[ ]] | [[ ]] | [[ ]] | [[ ]] | [[ ]] | [[ ]] | [[ ]] | [[ ]] |
+**On DataSAIL.** Our stated grounds for exclusion are wrong, and we have corrected Sections 1–2. DataSAIL permits multi-class membership and enforces stratification per class. The distinction we should have drawn is not about multi-label capability but about what the stratification constraint counts. DataSAIL's constraint is
 
-**Action:** [[...]]
+> **Equation (1)**  ∑_{x ∈ D_i ∩ D^{c}} κ(x) ≥ (1 − δ) · s_i · n^c  for every split i and class c
+
+where D is the set of data elements (sentences), D_i those in split i, s_i the target fraction of split i, δ a relative tolerance, σ(x) ⊆ [C] := {1, …, C} the set of classes element x belongs to, D^c := { x ∈ D | c ∈ σ(x) } the elements containing **at least one** class-c mention, and n^c := ∑_{x ∈ D^c} κ(x) its total weight.
+
+The weight κ is indexed by the element alone, κ : D → ℕ≥1, equal to 1 for every elementary data point. The class enters only through the membership test, so a sentence contributes the same κ(x) to every class it touches: one with twelve `PER` and one `ORG` counts once toward each. The constraint conserves *how many sentences touch class c*. For NER the quantity that determines training support is *how many mentions of class c* each split receives, which needs a weight indexed by the pair. Collecting those in the class matrix A ∈ ℕ^{|D| × C}, with A_{x,c} the number of class-c mentions in element x, our constraint is
+
+> **Equation (2)**  ∑_{x ∈ D_i} A_{x,c} ≥ (1 − δ) · s_i · n^c,  with n^c := ∑_{x ∈ D} A_{x,c}
+
+The difference is exactly a threshold: DataSAIL's stratification is driven by the binary matrix [A_{x,c} > 0] weighted by the class-independent κ(x), ours by A itself. Thresholding A discards the multiplicities, and no choice of κ recovers them, because κ carries no class index. The two agree only when every element holds exactly one mention — i.e. when NER reduces to sentence classification. To answer the reviewer's framing directly: this is a specific difference, not a reason to exclude the framework, and Section 2 will state it as such.
+
+**On isolating the formulation from the constraint.** The reviewer is right that MinCut's worse class preservation cannot, by itself, separate the two. But the separation is already available in our results, because δ = 1 removes EMPIRE's class-balance constraint and is therefore the constraint-matched counterpart to MinCut:
+
+| | Entity disjointness (%) ↑ | Class drift (Hellinger) ↓ | Split sizes |
+|---|---|---|---|
+| Native | 84.46 | 0.0415 | exact |
+| MinCut | 95.19 | 0.1403 | relaxed (AnatEM 0.50 → 0.51) |
+| EMPIRE (α = 1, δ = 1) | **96.71** | 0.1407 | exact on 24 / 24 |
+| EMPIRE (α = 1, δ\*) | 94.62 | **0.0179** | exact on 24 / 24 |
+
+Read down the δ = 1 row: with its class constraint removed, EMPIRE's class drift is 0.1407 against MinCut's 0.1403 — a difference of 0.0004, i.e. the two are matched on exactly the dimension the reviewer says is doing the work. At that matched drift EMPIRE attains 1.52 points more entity disjointness, and does so while holding the split ratios exactly on all 24 datasets, which MinCut does not.
+
+So the two contributions can be read off separately. The constraint's own effect is the δ = 1 → δ\* step: drift falls from 0.1407 to 0.0179, below even Native's 0.0415, at a cost of 2.09 points of disjointness. The formulation's effect is the MinCut → δ = 1 comparison at matched drift. We did not present the results this way, and we will.
+
+**Action:** We will (i) replace the incorrect "one label per sample" justification in Sections 1–2 with the κ(x) versus A_{x,c} distinction above; (ii) add DataSAIL as a baseline; and (iii) restructure Section 5.1 to present δ = 1 explicitly as the constraint-matched comparison against MinCut, and the δ = 1 → δ\* step as the isolated effect of the class-balance constraint, rather than comparing the constrained configuration against unconstrained baselines.
 
 **Weakness-1(b) — Feasibility pre-check does not give the claimed coordinatewise guarantee:**
 > The feasibility pre-check does not provide the coordinatewise guarantee claimed in Appendix A.2. The objective
