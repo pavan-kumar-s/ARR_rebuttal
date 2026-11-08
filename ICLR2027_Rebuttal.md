@@ -189,19 +189,57 @@ We thank the reviewer for an exceptionally thorough review. Several of the point
 **Weakness-1(a) — Distinction from DataSAIL rests on an incorrect premise:**
 > The distinction from closely related methods is based partly on an incorrect premise. Sections 1–2 exclude DataSAIL because it supposedly assumes one label per sample. However, DataSAIL explicitly allows multiple class memberships and combines similarity-aware splitting with stratification, size constraints, clustering, and integer programming (Joeres et al., 2025, Eq. 4). This does not make it equivalent to EMPIRE's entity-isolation and mention-count formulation, but the paper needs to establish those specific differences rather than exclude the framework on incorrect grounds. Since MinCut and TopSim do not enforce comparable class constraints, their worse class preservation also does not isolate the benefit of EMPIRE's particular formulation from the benefit of adding such constraints.
 
-We thank the reviewer. There are two separate claims here, and we take them in turn.
+We thank the reviewer for raising this. There are two claims here, and we take them in turn.
 
-**On DataSAIL.** Our stated grounds for exclusion are wrong, and we have corrected Sections 1–2. DataSAIL permits multi-class membership and enforces stratification per class. The distinction we should have drawn is not about multi-label capability but about what the stratification constraint counts. DataSAIL's constraint is
+**On DataSAIL.** One limitation of DataSAIL on NER data is that its stratification constraint conserves the number of *sentences* that touch a class, not the number of *mentions* of that class. These are different quantities, and the second is what determines training support.
 
-> **Equation (1)**  ∑_{x ∈ D_i ∩ D^{c}} κ(x) ≥ (1 − δ) · s_i · n^c  for every split i and class c
+DataSAIL does permit multi-class membership, and it enforces stratification for each class separately. The issue is not multi-label capability but **what the constraint counts**.
 
-where D is the set of data elements (sentences), D_i those in split i, s_i the target fraction of split i, δ a relative tolerance, σ(x) ⊆ [C] := {1, …, C} the set of classes element x belongs to, D^c := { x ∈ D | c ∈ σ(x) } the elements containing **at least one** class-c mention, and n^c := ∑_{x ∈ D^c} κ(x) its total weight.
+**The formal gap.** The class-stratification constraint in DataSAIL is
 
-The weight κ is indexed by the element alone, κ : D → ℕ≥1, equal to 1 for every elementary data point. The class enters only through the membership test, so a sentence contributes the same κ(x) to every class it touches: one with twelve `PER` and one `ORG` counts once toward each. The constraint conserves *how many sentences touch class c*. For NER the quantity that determines training support is *how many mentions of class c* each split receives, which needs a weight indexed by the pair. Collecting those in the class matrix A ∈ ℕ^{|D| × C}, with A_{x,c} the number of class-c mentions in element x, our constraint is
+> **Equation (1)** ∑_{x ∈ D_i ∩ D^{c}} κ(x) ≥ (1 − δ) · s_i · n^c  for every split i and class c
 
-> **Equation (2)**  ∑_{x ∈ D_i} A_{x,c} ≥ (1 − δ) · s_i · n^c,  with n^c := ∑_{x ∈ D} A_{x,c}
+where:
 
-The difference is exactly a threshold: DataSAIL's stratification is driven by the binary matrix [A_{x,c} > 0] weighted by the class-independent κ(x), ours by A itself. Thresholding A discards the multiplicities, and no choice of κ recovers them, because κ carries no class index. The two agree only when every element holds exactly one mention — i.e. when NER reduces to sentence classification. To answer the reviewer's framing directly: this is a specific difference, not a reason to exclude the framework, and Section 2 will state it as such.
+- D is the set of data elements (here, sentences), and D_i those assigned to split i;
+- D^{c} is the class-c subset, i.e. the elements containing **at least one** mention of class c;
+- n^c := ∑_{x ∈ D^{c}} κ(x); κ(x) is its total weight (weight here is the number of samples in the cluster);
+- s_i is the target fraction of split i, and δ a relative tolerance.
+
+The weight κ is indexed by the element alone, **κ : D → ℕ≥1**, and equals 1 for every elementary data point (κ > 1 only when x is a cluster of points). The class enters nowhere except the membership test. A sentence therefore contributes the same κ(x) to every class it touches: a sentence with twelve `PER` and one `ORG` counts once toward `PER` and once toward `ORG`.
+
+Mention-level balance requires the same constraint with the weight indexed by the **pair** — κ(x, c), the number of mentions of class c in element x. We collect these in the **class matrix** A ∈ ℕ^{|D| × C}, with A_{x,c} := κ(x, c). Our constraint is then
+
+> **Equation (2)** ∑_{x ∈ D_i} A_{x,c} ≥ (1 − δ) · s_i · n^c, with n^c := ∑_{x ∈ D} A_{x,c}  for every split i and class c
+
+The sum runs over all of D_i rather than D_i ∩ D^{c}: A_{x,c} = 0 for any element with no class-c mention, so the set-membership test is no longer needed.
+
+**The difference is exactly a threshold.** DataSAIL's stratification is driven by the **binary** matrix [A_{x,c} > 0] — whether element x contains *any* class-c mention — weighted by the class-independent κ(x). Ours is driven by **A itself**. Thresholding A discards the multiplicities, and no choice of κ recovers them, because κ has no class index to vary over. The two agree only when every element carries exactly one mention — i.e. when NER reduces to sentence classification.
+
+
+**A minimal instance:** 12 sentences, two classes, an 8 / 4 train–test split (s_train = 2/3, s_test = 1/3), mention counts (`PER`, `ORG`):
+
+| | s1 | s2 | s3 | s4 | s5 | s6 | s7 | s8 | s9 | s10 | s11 | s12 | total |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `PER` | 5 | 5 | 5 | 4 | 4 | 4 | 1 | 1 | 1 | 1 | 1 | 1 | 33 |
+| `ORG` | 1 | 1 | 1 | 1 | 1 | 1 | 5 | 5 | 5 | 4 | 4 | 4 | 33 |
+
+Every sentence contains both classes, so n^c = 12 under **Equation (1)** and n^c = 33 under **Equation (2)**. At δ = 0 this makes **Equation (1)** require ≥ 8 train and ≥ 4 test *sentences* per class, and **Equation (2)** require ≥ 22 train and ≥ 11 test *mentions* per class. Compare
+
+- **Split A** — train = {s1, …, s8}
+- **Split B** — train = {s1, s2, s4, s5, s7, s8, s10, s11}
+
+| | Split A | Split B |
+|---|---|---|
+| Sentences (train / test) | 8 / 4 | 8 / 4 |
+| **Equation (1)** DataSAIL, `PER` (train / test) | 8 ≥ 8, 4 ≥ 4 — **satisfied at δ = 0** | 8 ≥ 8, 4 ≥ 4 — **satisfied at δ = 0** |
+| **Equation (1)** DataSAIL, `ORG` (train / test) | 8 ≥ 8, 4 ≥ 4 — **satisfied at δ = 0** | 8 ≥ 8, 4 ≥ 4 — **satisfied at δ = 0** |
+| `PER` mentions (train / test) | **29 / 4** | 22 / 11 |
+| `ORG` mentions (train / test) | **16 / 17** | 22 / 11 |
+| **Equation (2)** EMPIRE, `PER` (train / test) | 29 ≥ 22, **4 ≥ 11 fails** — **infeasible at δ = 0** | 22 ≥ 22, 11 ≥ 11 — **satisfied at δ = 0** |
+| **Equation (2)** EMPIRE, `ORG` (train / test) | **16 ≥ 22 fails**, 17 ≥ 11 — **infeasible at δ = 0** | 22 ≥ 22, 11 ≥ 11 — **satisfied at δ = 0** |
+
+Both splits satisfy **Equation (1)** exactly, at its tightest setting δ = 0, for both classes: to DataSAIL they are indistinguishable. Under **Equation (2)** they are not. Split A leaves training 16 of the 33 `ORG` mentions — 48% against a 67% target — and leaves the test set just 4 of the 33 `PER` mentions, 12% against 33%. A model evaluated on it scores poorly on `ORG` for want of training support, and its `PER` score rests on four test mentions; neither has anything to do with whether the test entities are unseen. That is the confound of our Section 5.4, reintroduced by a constraint reporting zero violation. Split B is the same 8 / 4 sentence split, equally admissible to DataSAIL, and meets **Equation (2)** exactly at 22 / 11 for both classes. DataSAIL cannot distinguish A from B; our formulation rejects A and admits B.
 
 **On isolating the formulation from the constraint.** The reviewer is right that MinCut's worse class preservation cannot, by itself, separate the two. But the separation is already available in our results, because δ = 1 removes EMPIRE's class-balance constraint and is therefore the constraint-matched counterpart to MinCut:
 
