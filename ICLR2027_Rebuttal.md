@@ -71,15 +71,13 @@ DataSAIL does permit multi-class membership, and it enforces stratification for 
 
 where:
 
-- C is the number of classes and [C] := {1, …, C};
-- **σ(x) ⊆ [C] is the set of classes that element x belongs to** — for a sentence, the set of entity types that occur in it;
 - D is the set of data elements (here, sentences), and D_i those assigned to split i;
-- D^{c} := { x ∈ D | c ∈ σ(x) } is the class-c subset, i.e. the elements containing **at least one** mention of class c, and n^c := ∑_{x ∈ D^{c}} κ(x) its total weight;
+- D^{c} is the class-c subset, i.e. the elements containing **at least one** mention of class c
+- n^c := ∑_{x ∈ D^{c}}
+- κ(x) its total weight (weight here is the number of samples in the cluster);
 - s_i is the target fraction of split i, and δ a relative tolerance.
 
-Note that σ(x) is a **set**: it records *which* classes occur in x, never *how many times* each occurs.
-
-The weight κ is indexed by the element alone, **κ : D → ℕ≥1**, and equals 1 for every elementary data point (κ > 1 only when x is a cluster of points). The class enters nowhere except the membership test `c ∈ σ(x)`. A sentence therefore contributes the same κ(x) to every class it touches: a sentence with twelve `PER` and one `ORG` counts once toward `PER` and once toward `ORG`.
+The weight κ is indexed by the element alone, **κ : D → ℕ≥1**, and equals 1 for every elementary data point (κ > 1 only when x is a cluster of points). The class enters nowhere except the membership test. A sentence therefore contributes the same κ(x) to every class it touches: a sentence with twelve `PER` and one `ORG` counts once toward `PER` and once toward `ORG`.
 
 Mention-level balance requires the same constraint with the weight indexed by the **pair** — κ(x, c), the number of mentions of class c in element x. We collect these in the **class matrix** A ∈ ℕ^{|D| × C}, with A_{x,c} := κ(x, c). Our constraint is then
 
@@ -87,22 +85,17 @@ Mention-level balance requires the same constraint with the weight indexed by th
 
 The sum runs over all of D_i rather than D_i ∩ D^{c}: A_{x,c} = 0 for any element with no class-c mention, so the set-membership test is no longer needed.
 
-**The difference is exactly a threshold.** DataSAIL's stratification is driven by the **binary** matrix 1[A_{x,c} > 0] — whether element x contains *any* class-c mention — weighted by the class-independent κ(x). Ours is driven by **A itself**. Thresholding A discards the multiplicities, and no choice of κ recovers them, because κ has no class index to vary over. The two agree only when every element carries exactly one mention — i.e. when NER reduces to sentence classification.
+**The difference is exactly a threshold.** DataSAIL's stratification is driven by the **binary** matrix [= A_{x,c} > 0] — whether element x contains *any* class-c mention — weighted by the class-independent κ(x). Ours is driven by **A itself**. Thresholding A discards the multiplicities, and no choice of κ recovers them, because κ has no class index to vary over. The two agree only when every element carries exactly one mention — i.e. when NER reduces to sentence classification.
 
-**Where the constraint becomes vacuous.** When every sentence contains at least one mention of every class — σ(x) = [C] for all x, i.e. every entry of A is non-zero — the class-c subset is the whole corpus, D^{c} = D, and n^c = n for every c. The stratification constraint then reads
 
-> ∑_{x ∈ D_i} κ(x) ≥ (1 − δ) · s_i · n,
-
-identical for every class — and identical to DataSAIL's split-size constraint, ∑_{x ∈ D_i} κ(x) ≥ (1 − ε) · s_i · n with n := ∑_{x ∈ D} κ(x), up to the choice of tolerance. Every class constraint collapses onto the split-size constraint, and stratification imposes nothing beyond it — for any κ and any δ. This follows from the form of the constraint, independent of solver or tolerance.
-
-A minimal instance: 12 sentences, two classes, 50/50 split, mention counts (`PER`, `ORG`):
+**A minimal instance:** 12 sentences, two classes, 50/50 split, mention counts (`PER`, `ORG`):
 
 | | s1 | s2 | s3 | s4 | s5 | s6 | s7 | s8 | s9 | s10 | s11 | s12 | total |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | `PER` | 5 | 5 | 5 | 4 | 4 | 4 | 1 | 1 | 1 | 1 | 1 | 1 | 33 |
 | `ORG` | 1 | 1 | 1 | 1 | 1 | 1 | 5 | 5 | 5 | 4 | 4 | 4 | 33 |
 
-Every sentence contains both classes. Compare train = {s1…s6} (**A**) against train = {s1,s2,s3,s7,s8,s9} (**B**):
+Every sentence contains both classes. Compare train = {s1…s6} (**Split A**) against train = {s1,s2,s3,s7,s8,s9} (**Split B**):
 
 | | Split A | Split B |
 |---|---|---|
