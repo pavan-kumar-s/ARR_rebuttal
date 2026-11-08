@@ -63,7 +63,7 @@ We thank the reviewer for their valuable feedback, and in particular for recogni
 
 We thank the reviewer for mentioning this. One limitation of DataSAIL on NER data is that its stratification constraint conserves the number of *sentences* that touch a class, not the number of *mentions* of that class. These are different quantities, and the second is what determines training support.
 
-DataSAIL does permit membership in multiple classes, σ(x) ⊆ [C], and enforces stratification per class. The issue is not multi-label capability but **what the constraint counts**.
+DataSAIL does permit multi-class membership: each element x carries a **set** of classes σ(x) ⊆ [C] := {1, …, C} — for a sentence, the set of entity types occurring in it — and stratification is enforced for each class separately. The issue is not multi-label capability but **what the constraint counts**.
 
 **The formal gap.** The class-stratification constraint in DataSAIL is
 
@@ -77,13 +77,13 @@ Mention-level balance instead requires a weight indexed by the **pair**, **κ : 
 
 > ∑_{s ∈ S_i} m_{s,t} ≥ (1 − δ_t) · P_i · M_t    for every split i and class t
 
-where M_t is the total number of class-t mentions in the corpus and P_i the target share of split i. DataSAIL has no object of this shape. The two formulations coincide only when every sentence carries exactly one mention — i.e. when NER reduces to sentence classification.
+where S_i is the set of sentences assigned to split i, M_t the total number of class-t mentions in the corpus, P_i the target share of split i, and δ_t the tolerance for class t. DataSAIL has no object of this shape. The two formulations coincide only when every sentence carries exactly one mention — i.e. when NER reduces to sentence classification.
 
 **κ cannot be repurposed.** Setting κ(x) to the sentence's mention count fails, because κ serves three roles simultaneously:
 
 1. **Shared across classes.** One scalar per sentence serves every c ∈ σ(x). Setting κ = 13 for a sentence with 12 `PER` and 1 `ORG` tells the `ORG` constraint it carries 13 `ORG` mentions.
-2. **Split-size weight.** The same κ carries DataSAIL's split-size constraint, ∑_{x ∈ D_i} κ(x) ≥ (1 − ε) · s_i · n with n = ∑_{x ∈ D} κ(x). Mention-count weights make this preserve the *mention* ratio rather than the *sentence* ratio — forfeiting the exact split sizes this reviewer asks about in Question 1.
-3. **Leakage weight.** The same κ weights DataSAIL's objective, L(π) = ∑_{x,x′} [π(x) ≠ π(x′)] · sim(x,x′) · κ(x) · κ(x′). Mention-count weights let entity-dense sentences dominate it quadratically, changing what is being minimised.
+2. **Split-size weight.** The same κ carries DataSAIL's split-size constraint, ∑_{x ∈ D_i} κ(x) ≥ (1 − ε) · s_i · n, where n = ∑_{x ∈ D} κ(x) and ε is the split-size tolerance. Mention-count weights make this preserve the *mention* ratio rather than the *sentence* ratio — forfeiting the exact split sizes this reviewer asks about in Question 1.
+3. **Leakage weight.** The same κ weights DataSAIL's leakage objective — the total sim(x,x′) · κ(x) · κ(x′) summed over all pairs assigned to *different* splits. Mention-count weights let entity-dense sentences dominate it quadratically, changing what is being minimised.
 
 No single assignment satisfies all three. Decoupling them is what our formulation does.
 
