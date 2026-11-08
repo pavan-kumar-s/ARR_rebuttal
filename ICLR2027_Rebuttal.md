@@ -147,13 +147,38 @@ The reason the two EMPIRE rows differ so much is the constraint itself. Enforcin
 **Question-1:**
 > Section 4.3 says ε is fixed at zero, so split sizes should match the original dataset exactly. But Table 2 says ε can be increased when clustering makes this infeasible, and lists different ratios e.g. MIT movie's validation share rises from 10% to 12%. Was ε fixed or adjusted for each dataset? Please report the values used, since the paper presents keeping split sizes unchanged as an advantage over MinCut.
 
-[[ANSWER. Give the direct answer in the first sentence — fixed, or adjusted per dataset — then the per-dataset table. Address the MIT Movie 10% → 12% case by name.]]
+We thank the reviewer for the question, and we can answer it directly: **ε was fixed at 0 in every run reported in the paper.** It was never tuned, relaxed, or set per dataset.
 
-| Dataset | Config | ε requested | ε realised | δ requested | δ\* (pre-check) | δ enforced | Realised ratio |
-|---|---|---|---|---|---|---|---|
-| [[ ]] | [[ ]] | [[ ]] | [[ ]] | [[ ]] | [[ ]] | [[ ]] | [[ ]] |
+What varies is not ε but whether ε = 0 is *attainable*, and that depends on one thing only — whether the configuration clusters.
 
-**Action:** [[Add the full tolerance table to the Appendix; reconcile §4.3 with Table 2.]]
+- **α = 1 (K = 0).** EMPIRE assigns individual sentences. The target ratios are derived from the native split itself, so a partition meeting them exactly always exists, and the feasibility pre-check confirms ε = 0 before the main solve. ε = 0 is feasible on every dataset.
+- **α < 1 (K = 50).** EMPIRE assigns clusters, and a cluster is indivisible: it goes entirely to one split. The attainable split ratios are therefore quantised by cluster size, and an exact match to the native ratio may not exist. When it does not, the pre-check returns the smallest feasible tolerance, which is bounded by the granularity of a single cluster.
+
+Table 2 bears this out across all 24 datasets. Counting every cell whose realised ratio differs from Native at two decimals:
+
+| Configuration | Clustering | Datasets differing from Native |
+|---|---|---|
+| EMPIRE (α = 1, δ\*) | no (K = 0) | **0 / 24** |
+| EMPIRE (α = 1, δ = 1) | no (K = 0) | **0 / 24** |
+| EMPIRE (α = 0, δ = 1) | yes (K = 50) | 0 / 24 |
+| EMPIRE (α = 0.5, δ = 1) | yes (K = 50) | 0 / 24 |
+| EMPIRE (α = 0, δ\*) | yes (K = 50) | 2 / 24 |
+| EMPIRE (α = 0.5, δ\*) | yes (K = 50) | 4 / 24 |
+| MinCut | — | 1 / 24 |
+| TopSim | — | 0 / 24 |
+
+Every deviation is in an α < 1 column: 6 cells out of the 96 clustered ones, and 0 out of the 48 unclustered ones. They arise only where clustering and the tight class tolerance δ\* bind together; at δ = 1 no clustered configuration deviates either. The mit-movie case the reviewer cites, 0.70:0.10:0.20 → 0.69:0.12:0.20, is the **α = 0.5, δ\*** cell — a clustered configuration, not the one compared against MinCut.
+
+We will add a table to the Appendix reporting, for every dataset and every configuration, the requested ε, the realised ε, and the realised split ratio, so that the values actually used are on record rather than inferable only from Table 2.
+
+**On the comparison with MinCut.** MinCut targets entity leakage, so the EMPIRE configuration set against it is α = 1, which does not cluster and reproduces the native ratio exactly on all 24 datasets. The claim that EMPIRE preserves split sizes where MinCut does not is therefore made on exactly the configuration where ε = 0 is guaranteed, and the table above is the evidence. In that comparison it is MinCut whose ratios move: on AnatEM it enlarges the training split from 0.50 to 0.51, which as Section 5 notes is precisely how it reaches 100% disjointness there — EMPIRE at α = 1 with ε = 0 cannot buy disjointness that way.
+
+**What we will fix.** Two places in the paper invited this reading, and both are ours.
+
+1. Section 4.3 states "We set ε = 0 throughout, so every split matches the target ratio exactly." The first clause is accurate; the second is unqualified and is not true of the clustered configurations.
+2. The Table 2 caption reads "for α **< 0**, clustering with K = 50 can make this infeasible" — a typo for α **< 1**. As written it points at an empty set of configurations, which makes the caveat impossible to match to the rows it governs.
+
+**Action:** We will (i) correct the Table 2 caption typo from α < 0 to α < 1; (ii) rewrite the Section 4.3 sentence to state that ε = 0 is requested throughout and is attained exactly whenever EMPIRE assigns sentences (α = 1), while under clustering (α < 1) the realised ratio may differ by at most the granularity of one cluster; (iii) report the realised ε per dataset and configuration in the Appendix alongside the requested value; and (iv) state explicitly in Section 5 that the split-size comparison with MinCut is made at α = 1, where ε = 0 holds on all 24 datasets.
 
 ---
 
