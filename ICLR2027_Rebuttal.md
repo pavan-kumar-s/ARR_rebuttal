@@ -73,7 +73,7 @@ where:
 
 - D is the set of data elements (here, sentences), and D_i those assigned to split i;
 - D^{c} is the class-c subset, i.e. the elements containing **at least one** mention of class c;
-- n^c := ∑_{x ∈ D^{c}} κ(x) is its total weight (weight here is the number of samples in the cluster);
+- n^c := ∑_{x ∈ D^{c}} κ(x); κ(x) is its total weight (weight here is the number of samples in the cluster);
 - s_i is the target fraction of split i, and δ a relative tolerance.
 
 The weight κ is indexed by the element alone, **κ : D → ℕ≥1**, and equals 1 for every elementary data point (κ > 1 only when x is a cluster of points). The class enters nowhere except the membership test. A sentence therefore contributes the same κ(x) to every class it touches: a sentence with twelve `PER` and one `ORG` counts once toward `PER` and once toward `ORG`.
@@ -94,7 +94,7 @@ The sum runs over all of D_i rather than D_i ∩ D^{c}: A_{x,c} = 0 for any elem
 | `PER` | 5 | 5 | 5 | 4 | 4 | 4 | 1 | 1 | 1 | 1 | 1 | 1 | 33 |
 | `ORG` | 1 | 1 | 1 | 1 | 1 | 1 | 5 | 5 | 5 | 4 | 4 | 4 | 33 |
 
-Every sentence contains both classes, so n^c = 12 under **(1)** and n^c = 33 under **(2)**. At δ = 0 this makes **(1)** require ≥ 8 train and ≥ 4 test *sentences* per class, and **(2)** require ≥ 22 train and ≥ 11 test *mentions* per class. Compare
+Every sentence contains both classes, so n^c = 12 under **Equation (1)** and n^c = 33 under **Equation (2)**. At δ = 0 this makes **(1)** require ≥ 8 train and ≥ 4 test *sentences* per class, and **(2)** require ≥ 22 train and ≥ 11 test *mentions* per class. Compare
 
 - **Split A** — train = {s1, …, s8}
 - **Split B** — train = {s1, s2, s4, s5, s7, s8, s10, s11}
@@ -113,7 +113,7 @@ Both splits satisfy **(1)** exactly, at its tightest setting δ = 0, for both cl
 
 **On the question asked.** For NER, EMPIRE's contribution is not separable from class balancing, because the class-balance quantity that matters is mention support. Section 5.4 shows mention support drives the apparent F1 drop; no published splitter, DataSAIL included, constrains it. The contribution is a formulation in which that quantity is expressible, plus the evidence that controlling it changes which conclusions a leakage-reduced evaluation supports.
 
-**Action:** We will (i) correct the inaccurate "one label per sample" justification in Sections 1–2 and replace it with the κ(x) vs. κ(x, c) distinction above, (ii) add DataSAIL as a baseline to Tables [[N]], and (iii) add the degeneracy argument and worked example to Appendix [[A.x]].
+**Action:** We will (i) correct the inaccurate "one label per sample" justification in Sections 1–2 and replace it with the κ(x) vs. κ(x, c) distinction above, and (ii) add the degeneracy argument and worked example to Appendix [[A.x]].
 
 **Weakness-2:**
 > How can authors conclude that context leakage has little effect when TopSim lowers F1 by 8.5 points while barely changing their metric? Could averaging similarity across all sentence pairs hide the near duplicates that actually help the model?
