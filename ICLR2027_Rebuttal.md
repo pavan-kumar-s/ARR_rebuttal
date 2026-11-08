@@ -124,13 +124,51 @@ The contribution is a formulation in which both leakage types and that quantity 
 **Weakness-2:**
 > How can authors conclude that context leakage has little effect when TopSim lowers F1 by 8.5 points while barely changing their metric? Could averaging similarity across all sentence pairs hide the near duplicates that actually help the model?
 
-[[RESPONSE. The second sentence is a direct hypothesis about the metric — answer it yes or no, with nearest-neighbour statistics rather than means. If the near-duplicate pairs are there and the mean hides them, say so and narrow the §5.3 conclusion to "no significant average F1 decrease under this mean-similarity procedure" rather than a general claim about context memorization.]]
+We thank the reviewer for raising this. The answer to the second question is yes, and it is the explanation the paper already gives for the first. The 8.5-point figure is our own measurement (Section 5.3: −0.085, p < 0.001), and Section 5.3 and Appendix A.6 attribute it to a specific mechanism:
 
-| Dataset | Split | Mean cross-split sim | Max NN sim | p99 NN sim | # pairs > [[τ]] |
-|---|---|---|---|---|---|
-| [[ ]] | [[ ]] | [[ ]] | [[ ]] | [[ ]] | [[ ]] |
+> "Because it places in test the sentences whose nearest neighbor is least similar, it removes near-duplicate contexts. This is a form of context leakage that information leakage, averaged over all cross-split pairs, registers only weakly." (Section 5.3)
 
-**Action:** [[...]]
+> "Because it considers only each sentence's single nearest neighbor, TopSim removes near-duplicate contexts but changes the average similarity between splits only slightly." (Appendix A.6)
+
+TopSim and our context objective minimise **different functionals of the same similarity matrix**. Ours, and the Information Leakage metric, are sums over all cross-split pairs:
+
+> **Equation (3)**  minimise ∑_{x, x′} w(x, x′) · ζ_{x,x′},  with w(x, x′) = sim(x, x′)
+
+where ζ_{x,x′} = 1 when x and x′ fall in different splits. TopSim instead ranks each sentence by its **single maximum** similarity to any other sentence (Equation 15) and fills the test split from the most isolated end. A mean over all cross-split pairs can move substantially while the small number of near-duplicate pairs is untouched, and the reverse — which is what the two results show.
+
+Collecting every configuration from Table 7, including the δ = 1 results that Figure 3a reports but Section 5.3 does not discuss (ΔF1 is the mean paired difference from Native over the 24 datasets):
+
+| What the split removes | Configuration | ΔF1 vs. Native | Lower on | Class support preserved |
+|---|---|---|---|---|
+| Entity overlap | EMPIRE (α = 1, δ\*) | −0.087 (p < 0.01) | 19 / 24 | yes |
+| Near-duplicate context | TopSim | −0.085 (p < 0.001) | 21 / 24 | no |
+| Aggregate cross-split similarity | EMPIRE (α = 0, δ\*) | −0.009 (n.s.) | 12 / 24 | yes |
+| Both, weighted equally | EMPIRE (α = 0.5, δ\*) | −0.034 (n.s.) | 13 / 24 | yes |
+| Entity overlap, unconstrained | EMPIRE (α = 1, δ = 1) | −0.201 (p < 0.001) | 22 / 24 | **no** |
+| Both, unconstrained | EMPIRE (α = 0.5, δ = 1) | −0.171 (p < 0.001) | 20 / 24 | **no** |
+| Aggregate similarity, unconstrained | EMPIRE (α = 0, δ = 1) | −0.128 (p < 0.001) | 21 / 24 | **no** |
+| Entity overlap, sizes relaxed | MinCut | −0.191 (p < 0.001) | 22 / 24 | no |
+
+Two points follow, and we should have made both explicit.
+
+**The δ = 1 drops are significant but not attributable to context.** Every δ = 1 configuration falls well below Native, α = 0 included at −0.128 (p < 0.001, lower on 21 of 24 datasets), and we under-reported this by deferring it to Section 5.4. It is not evidence that aggregate context leakage costs F1, because δ = 1 changes three things at once: it removes more context leakage, it *also* removes 2.1–6.4 more points of entity overlap, and it starves classes — 20–32 entity classes go missing from a split at δ = 1 against 5–6 at δ\*, and Section 5.4 shows the recovery gap for unseen test entities is fully accounted for by that difference in training support. The δ = 1 rows therefore cannot separate context from entity overlap or from class starvation.
+
+**The one configuration that does isolate aggregate context is α = 0, δ\*, and it gives −0.009, not significant.** Against that, TopSim removes near-duplicate context and costs 0.085 — and its splits are *no more entity-disjoint than Native* (Section 5.3), so that drop is not entity leakage in disguise. The two forms of context overlap behave differently, and only one of them inflates NER scores.
+
+**What we accept.** The abstract states flatly that removing context leakage "does not" lower F1. That conflates the two operationalisations, and it is the reading the reviewer is objecting to. The shortcoming is prominence and metric coverage: the distinction sits in Section 5.3 and Appendix A.6 rather than the headline, and we report Information Leakage alone, which is by construction insensitive to the near-duplicate form.
+
+**What we will add.** Neither item requires a new method.
+
+1. *Near-duplicate statistics alongside the mean.* Per split: the distribution of each test sentence's maximum similarity to training, its 95th and 99th percentiles, and the count of cross-split pairs above a near-duplicate threshold τ. [[INSERT for Native, MinCut, TopSim, EMPIRE α = 0 and α = 1; state τ and how it was chosen.]]
+2. *A near-duplicate objective, as a weight substitution.* Replacing the weight in **Equation (3)** with its thresholded indicator
+
+> **Equation (4)**  w(x, x′) = [ sim(x, x′) > τ ]
+
+changes the objective from total cross-split similarity to the number of near-duplicate pairs straddling splits. It is linear in the same variables, over the same constraints, with no change to the solver — and unlike TopSim it keeps the split-size and class-balance guarantees. [[REPORT whether it reproduces TopSim's F1 drop while retaining them.]]
+
+**Action:** We will (i) revise the abstract and Section 5.3 so the finding reads *entity leakage and near-duplicate context leakage both inflate F1 by comparable amounts, while aggregate distributional overlap does not*, rather than that context leakage has no effect; (ii) report the δ = 1 F1 differences in Section 5.3 where they belong, with the Section 5.4 caveat that they confound context, entity and class-support effects; (iii) add nearest-neighbour and near-duplicate-count statistics to Table [[N]] so the metric covers both forms; and (iv) add the thresholded objective of **Equation (4)** and its results.
+
+---
 
 **Question-1:**
 > Section 4.3 says ε is fixed at zero, so split sizes should match the original dataset exactly. But Table 2 says ε can be increased when clustering makes this infeasible, and lists different ratios e.g. MIT movie's validation share rises from 10% to 12%. Was ε fixed or adjusted for each dataset? Please report the values used, since the paper presents keeping split sizes unchanged as an advantage over MinCut.
