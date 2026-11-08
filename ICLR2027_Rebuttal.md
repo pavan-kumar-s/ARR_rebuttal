@@ -81,13 +81,15 @@ Note that σ(x) is a **set**: it records *which* classes occur in x, never *how 
 
 The weight κ is indexed by the element alone, **κ : D → ℕ≥1**, and equals 1 for every elementary data point (κ > 1 only when x is a cluster of points). The class enters nowhere except the membership test `c ∈ σ(x)`. A sentence therefore contributes the same κ(x) to every class it touches: a sentence with twelve `PER` and one `ORG` counts once toward `PER` and once toward `ORG`.
 
-Mention-level balance requires the same constraint with the weight indexed by the **pair** — κ(x, c), the number of mentions of class c in element x:
+Mention-level balance requires the same constraint with the weight indexed by the **pair** — κ(x, c), the number of mentions of class c in element x. We collect these in the **class matrix** A ∈ ℕ^{|D| × C}, with A_{x,c} := κ(x, c). Our constraint is then
 
-> ∑_{x ∈ D_i} κ(x, c) ≥ (1 − δ) · s_i · n^c,   with n^c := ∑_{x ∈ D} κ(x, c)
+> ∑_{x ∈ D_i} A_{x,c} ≥ (1 − δ) · s_i · n^c,   with n^c := ∑_{x ∈ D} A_{x,c}    for every split i and class c
 
-The sum now runs over all of D_i rather than D_i ∩ D^{c}, because κ(x, c) = 0 for any element with no class-c mention, so the set-membership test is no longer needed. This is the constraint our formulation enforces. DataSAIL's κ carries no class index and cannot express it. The two coincide only when every element carries exactly one mention — i.e. when NER reduces to sentence classification.
+The sum runs over all of D_i rather than D_i ∩ D^{c}: A_{x,c} = 0 for any element with no class-c mention, so the set-membership test is no longer needed.
 
-**Where the constraint becomes vacuous.** When every sentence contains at least one mention of every class — σ(x) = [C] for all x — the class-c subset is the whole corpus, D^{c} = D, and n^c = n for every c. The stratification constraint then reads
+**The difference is exactly a threshold.** DataSAIL's stratification is driven by the **binary** matrix 1[A_{x,c} > 0] — whether element x contains *any* class-c mention — weighted by the class-independent κ(x). Ours is driven by **A itself**. Thresholding A discards the multiplicities, and no choice of κ recovers them, because κ has no class index to vary over. The two agree only when every element carries exactly one mention — i.e. when NER reduces to sentence classification.
+
+**Where the constraint becomes vacuous.** When every sentence contains at least one mention of every class — σ(x) = [C] for all x, i.e. every entry of A is non-zero — the class-c subset is the whole corpus, D^{c} = D, and n^c = n for every c. The stratification constraint then reads
 
 > ∑_{x ∈ D_i} κ(x) ≥ (1 − δ) · s_i · n,
 
