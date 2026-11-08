@@ -63,13 +63,21 @@ We thank the reviewer for their valuable feedback, and in particular for recogni
 
 We thank the reviewer for mentioning this. One limitation of DataSAIL on NER data is that its stratification constraint conserves the number of *sentences* that touch a class, not the number of *mentions* of that class. These are different quantities, and the second is what determines training support.
 
-DataSAIL does permit multi-class membership: each element x carries a **set** of classes σ(x) ⊆ [C] := {1, …, C} — for a sentence, the set of entity types occurring in it — and stratification is enforced for each class separately. The issue is not multi-label capability but **what the constraint counts**.
+DataSAIL does permit multi-class membership, and it enforces stratification for each class separately. The issue is not multi-label capability but **what the constraint counts**.
 
 **The formal gap.** The class-stratification constraint in DataSAIL is
 
 > ∑_{x ∈ D_i ∩ D^{c}} κ(x) ≥ (1 − δ) · s_i · n^c    for every split i and class c
 
-where D is the set of data elements (here, sentences), D_i those assigned to split i, s_i the target fraction of split i, and δ a relative tolerance. The class-c subset is defined by **set membership**, D^{c} := { x ∈ D | c ∈ σ(x) } — the elements that contain *at least one* mention of class c — with n^c := ∑_{x ∈ D^{c}} κ(x) its total weight.
+where:
+
+- C is the number of classes and [C] := {1, …, C};
+- **σ(x) ⊆ [C] is the set of classes that element x belongs to** — for a sentence, the set of entity types that occur in it;
+- D is the set of data elements (here, sentences), and D_i those assigned to split i;
+- D^{c} := { x ∈ D | c ∈ σ(x) } is the class-c subset, i.e. the elements containing **at least one** mention of class c, and n^c := ∑_{x ∈ D^{c}} κ(x) its total weight;
+- s_i is the target fraction of split i, and δ a relative tolerance.
+
+Note that σ(x) is a **set**: it records *which* classes occur in x, never *how many times* each occurs.
 
 The weight κ is indexed by the element alone, **κ : D → ℕ≥1**, and equals 1 for every elementary data point (κ > 1 only when x is a cluster of points). The class enters nowhere except the membership test `c ∈ σ(x)`. A sentence therefore contributes the same κ(x) to every class it touches: a sentence with twelve `PER` and one `ORG` counts once toward `PER` and once toward `ORG`.
 
