@@ -231,13 +231,30 @@ We thank the reviewer for an exceptionally thorough review. Several of the point
 **Weakness-1(d) — Optimization quality claims exceed the certificates:**
 > The interpretation of optimization quality is stronger than the available certificates. Table 9 includes substantial termination gaps, such as 185.7% for FabNER under α = 1 and δ = 1. These do not establish that the returned partitions are poor, but they leave their proximity to the optimum unresolved. The connected-component argument correctly gives a necessary condition for complete disjointness; it does not explain how much of a partially disjoint solution's shortfall is unavoidable. Similarly, the cluster-count ablation supports K = 50 under the tested computational budget, rather than showing that finer clustering is generally unnecessary. Removing pairwise variables also does not eliminate the combinatorial nature of the remaining integer assignment problem, as Appendix A.5 suggests. The concern is not that every instance must be solved exactly, but that feasible solutions, proven optima, and structural impossibility are insufficiently distinguished.
 
-[[RESPONSE. The reviewer states the standard in their last sentence: separate (i) feasible-but-unproven solutions, (ii) proven optima, and (iii) structurally impossible targets. A per-instance solver-status table meets it. Also soften the Appendix A.5 claim about combinatorial difficulty and the K=50 ablation claim to what the tested budget actually supports.]]
+We thank the reviewer for stating the standard precisely. The three categories can be separated with what is already recorded, and we should have separated them.
 
-| Dataset | Config | Status | Incumbent | Best bound | Gap | Time |
-|---|---|---|---|---|---|---|
-| [[ ]] | [[ ]] | [[ ]] | [[ ]] | [[ ]] | [[ ]] | [[ ]] |
+**Proven optima.** The main ILP requests a relative gap tolerance of 0 for α = 1 and 5% for α < 1 (Appendix A.7). The terminating gaps in Table 9 are then:
 
-**Action:** [[...]]
+| Configuration | Requested tolerance | Median gap | Proven optimal (0.0%) | Max gap |
+|---|---|---|---|---|
+| EMPIRE (α = 1, δ = 1) | 0 | **0.0%** | **13 / 24** | 185.7% (FabNER) |
+| EMPIRE (α = 1, δ\*) | 0 | 9.9% | 6 / 24 | 247.4% (FabNER) |
+| EMPIRE (α = 0, δ = 1) | 5% | 5.0% | 0 / 24 | 9.6% |
+| EMPIRE (α = 0, δ\*) | 5% | 4.9% | 2 / 24 | 10.6% |
+| EMPIRE (α = 0.5, δ = 1) | 5% | 4.7% | 6 / 24 | 77.5% |
+| EMPIRE (α = 0.5, δ\*) | 5% | 4.4% | 7 / 24 | 63.4% |
+
+Two things follow that the paper left implicit. At α = 1, δ = 1 — the configuration carrying the entity-leakage claims — the median solve is **proven optimal**, not merely feasible. And the α < 1 medians of 4.4–5.0% are the solver stopping at the 5% tolerance it was *asked* for, not failing to close a gap; they are a stopping criterion, not a symptom.
+
+**Structural impossibility, separated from unresolved optimization.** Table 10 establishes, by the connected-component condition, that full disjointness is attainable at ε = 0 on 12 of the 24 datasets. On all 12, EMPIRE (α = 1, δ = 1) reaches 100% disjointness *with a proven-optimal solution*. On the other 12 it is infeasible at ε = 0 by construction, so the shortfall there is a property of the data, not a solver outcome. The reviewer is nonetheless right that this gives a necessary condition for 100% and does not quantify how much of a *partial* shortfall is unavoidable.
+
+**Large gaps are loose bounds, not poor incumbents.** The gap is |bound − incumbent| / |incumbent|, so values above 100% mean the dual bound is still loose at the limit (Table 9 caption). FabNER's 185.7% does not say the returned partition is far from optimal; it says the bound has not closed. These are not interchangeable, and we conflated them by presenting the gap column without that reading.
+
+**What we will add.** A per-instance table reporting the incumbent objective, the best dual bound, the structural ceiling from Table 10, the solver status, and whether the time limit was hit. The quantity the reviewer asks for then follows directly: the distance from incumbent to bound is unresolved optimization, and the distance from bound to ceiling is structurally unattainable. That decomposition is what we currently assert qualitatively.
+
+**What we will soften.** Two claims overreach what the budget supports, as the reviewer notes. Appendix A.5 should not suggest that removing pairwise variables removes the combinatorial character of the remaining assignment problem — it reduces the variable count, nothing more. And the cluster-count ablation supports K = 50 *under the tested time limit*, where K = 200 raises the median gap from 5.0% to 11.3% and the number of time-limited solves from 12 to 23 of 24; it does not show that finer clustering is unnecessary in general.
+
+**Action:** We will (i) add the per-instance incumbent / bound / ceiling / status table described above to the Appendix; (ii) state in Section 5 that at α = 1, δ = 1 the median solve is proven optimal and that 13 of 24 close to 0%, rather than reporting gaps alone; (iii) note in Appendix A.7 and the Table 9 caption that α < 1 solves stop at the requested 5% tolerance, so gaps near 5% are expected; and (iv) rewrite the Appendix A.5 and K = 50 claims to the scope stated above.
 
 **Weakness-2(a) — Re-splitting does not isolate entity memorization:**
 > Re-splitting does not isolate entity memorization. Section 5.3 attributes the F1 decrease to recognition of entities seen during training. However, re-splitting changes the training and test examples themselves, potentially changing entity frequencies, sentence difficulty, topics, and other distributional properties. Class-count constraints address an important confound, but not all of these changes. The experiments demonstrate that the splitting procedure affects evaluation more directly than they establish how much Native performance is attributable to memorization. The intended deployment setting also matters: excluding recurring entities creates a particular generalization test, not automatically a more trustworthy test for every application.
@@ -278,12 +295,25 @@ We thank the reviewer for an exceptionally thorough review. Several of the point
 **Weakness-2(e) — Metric and reporting inconsistencies:**
 > Metric and reporting inconsistencies further complicate verification. Entity targets are stemmed during optimization but matched by exact surface form during evaluation; the objective is frequency-weighted, whereas disjointness weights unique targets equally. Accordingly, matching MinCut on disjointness does not imply matching it on ECR, where the class-constrained configuration retains more overlap. Figure 1's information-leakage averages also disagree with Table 6: for example, Native is shown as approximately 0.175, whereas the table entries average approximately 0.396. Appendix A.4 similarly illustrates an unweighted entity objective rather than the frequency-weighted Eq. (9). These may be correctable reporting issues, but they need reconciliation before the associated quantitative claims can be assessed confidently.
 
-[[RESPONSE. Three checkable discrepancies — answer each with a number, not an explanation:
- (i) stemmed optimization vs. exact-surface-form evaluation, and frequency-weighted objective vs. unique-target-weighted disjointness;
- (ii) Figure 1 Native ≈ 0.175 vs. Table 6 average ≈ 0.396 — say which is correct and whether any conclusion moves;
- (iii) Appendix A.4 illustrates an unweighted objective, not frequency-weighted Eq. (9).]]
+We thank the reviewer for these. All three are checkable, and we answer each in turn.
 
-**Action:** [[...]]
+**(i) Stemming, and the two weightings.** Both observations are correct as stated. Entity surface forms are stemmed with NLTK's SnowballStemmer before the target set E is built (Section 3), while the Disjointness Score matches "targets ... by exact surface form and class" (Section 4.5). The direction of this mismatch matters, though, and runs opposite to a concern about inflation: stemming *merges* morphological variants into a single target, so the optimizer must isolate a coarser and strictly harder set of objects than the metric scores. Stem-level disjointness implies surface-level disjointness, never the reverse. The mismatch therefore cannot inflate EMPIRE's reported Disjointness Score; it understates the problem the solver actually solved. We will nonetheless make both definitions explicit and report the Disjointness Score over stemmed targets alongside the surface-form version.
+
+On the weighting: the objective weights targets by frequency f_i, the Disjointness Score counts unique targets equally, and the Entity Coverage Ratio is mention-weighted. The reviewer's inference is exactly right — matching MinCut on Disjointness does not imply matching it on ECR, because the two metrics weight differently. ECR, not Disjointness, is the evaluation counterpart of the frequency-weighted objective. We never said so, and we will.
+
+**(ii) Figure 1 against Table 6.** The reviewer is right, and we have traced it. Figure 1's metrics panel is labelled "mean of 24 datasets" and reports three rows. Two of them reproduce the tables exactly:
+
+| Figure 1 row | Figure 1 | Computed from the tables |
+|---|---|---|
+| Disjointness, α = 1, δ = 1 | 84.5 / 95.2 / 96.7 | 84.46 / 95.19 / 96.71 (Table 3) ✓ |
+| Class drift, α = 1, δ = 0.1 | .040 / .140 / .019 | .0415 / .1403 / .0179 (Table 5) ✓ |
+| **Information leakage, α = 0, δ = 1** | **.175 / .165 / .143** | **.396 / .371 / .334 (Table 6)** ✗ |
+
+The Information Leakage row is wrong; the other two are correct. It is a stale row in the overview figure, not a discrepancy in the measurements. Nothing downstream depends on it: Section 5.2's reported differences — TopSim lowering leakage by 0.013 against 0.020 and 0.062 for EMPIRE (α = 0) at δ\* and δ = 1 — are computed from Table 6 and reproduce from it exactly (0.3962 − 0.3829 = 0.0133; − 0.3757 = 0.0205; − 0.3343 = 0.0619). So the correction affects the figure alone, and no reported comparison or conclusion changes.
+
+**(iii) The Appendix A.4 toy example.** Correct. A.4 evaluates Obj = α · D/3 − (1 − α) · I_L/1.0, counting disjoint entities unweighted, whereas the objective in the main formulation weights target i by its frequency f_i. The example illustrates the α interpolation faithfully but not the weighting. We will restate it with frequency weights so it matches the formulation it is illustrating.
+
+**Action:** We will (i) correct the Information Leakage row of Figure 1 and re-derive it from Table 6; (ii) state the stemmed-versus-surface-form distinction explicitly in Section 4.5 and add the stemmed-target Disjointness Score alongside the surface-form one; (iii) state that the frequency-weighted objective corresponds to ECR rather than to the unweighted Disjointness Score, and use that to explain the MinCut comparison; and (iv) rewrite the Appendix A.4 example with frequency weights.
 
 **Question-1 — Precise methodological advance over existing constrained splitting frameworks:**
 > Given DataSAIL's support for multiple class memberships, which aspects of EMPIRE require a genuinely different formulation: per-class mention multiplicities, entity-identity isolation, or their combination with the context objective? Please distinguish these requirements from capabilities already present in similarity-aware stratified splitting. What evidence establishes the benefit of the proposed formulation under comparable size and class-support requirements? An appropriately adapted comparison, or a precise explanation of why the relevant adaptation is not feasible, would materially clarify the contribution.
@@ -301,7 +331,11 @@ We thank the reviewer for an exceptionally thorough review. Several of the point
 > (a) Please distinguish the pre-check's achieved optimality status from its requested zero-gap stopping tolerance. Were all pre-check solutions proven optimal before the time limit? For the main solves with large gaps, what evidence supports attributing the remaining disjointness shortfall mainly to data structure rather than unresolved optimization?
 > (b) Please reconcile the information-leakage aggregates in Figure 1 with Table 6 and identify whether they use different metrics, subsets, or runs. Do the corrections affect only the overview figure, or any reported comparisons and conclusions? The toy example in Appendix A.4 should likewise be reconciled with the frequency-weighted objective.
 
-[[ANSWER. (a) from the solver-status table in W1(d) — state plainly whether every pre-check solve was proven optimal. (b) from W2(e).]]
+**(a)** The two are distinct and we reported only the request. The feasibility pre-check is given a relative MIP gap tolerance of 0 (Appendix A.7), so δ\* is defined as the tightest tolerance it can *prove* feasible within the time limit — but we never report which pre-check solves actually attained that proof before the limit, and we will. For the main solves, see our response to **Weakness-1(d)**: at α = 1, δ = 1 the median gap is 0.0% with 13 of 24 proven optimal, and the α < 1 gaps sit near the 5% tolerance those solves were asked to stop at.
+
+On attributing the disjointness shortfall: the honest answer is that the current evidence supports the attribution only where Table 10 settles it — the 12 datasets on which full disjointness is infeasible at ε = 0 by the connected-component condition, and the 12 on which EMPIRE attains it with a proven-optimal solution. Beyond those, we have not separated structural shortfall from an unclosed bound, and the per-instance incumbent / bound / ceiling table proposed in **Weakness-1(d)** is what would do it.
+
+**(b)** Figure 1's Information Leakage row is wrong and Table 6 is correct; see our response to **Weakness-2(e)(ii)**. The figure's other two metric rows reproduce Tables 3 and 5 exactly, and Section 5.2's reported leakage differences reproduce from Table 6 exactly, so the correction is confined to the overview figure and changes no reported comparison or conclusion. The Appendix A.4 example will likewise be restated with the frequency weights used in the objective, as in **Weakness-2(e)(iii)**.
 
 **Question-4 — Evidence for the interpretation of context leakage:**
 > Does EMPIRE's context-focused splitting reduce test-to-training nearest-neighbor similarity or near-duplicate frequency, in addition to reducing average cross-split similarity? How should the TopSim result be interpreted once differences in entity masking and class support are taken into account?
