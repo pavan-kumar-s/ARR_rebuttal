@@ -641,19 +641,3 @@ The one comparison in which granularity is held fixed is α = 0 against α = 0.5
 **Action:** We will state in Section 5.2 and Appendix A.3 that α enters the clustering representation as well as the objective, present α = 0 versus α = 0.5 as the comparison with granularity fixed, and describe α = 0.5 as interpolating between the two configurations rather than between the two objectives.
 
 ---
-
-# Checklist Before Posting
-
-- [ ] Every Weakness and Question has a response (18 weakness blocks + 10 question blocks across 4 reviewers).
-- [ ] Every `[[...]]` placeholder is replaced.
-- [ ] Shared numbers are **identical** across reviewer sections — tolerance table, Table 2/3/5/7 figures, δ = 1 comparisons.
-- [ ] No response promises a baseline run (DataSAIL, constrained MinCut) or any other new experiment.
-- [ ] Inconsistency between sections is visible to all reviewers — check cross-section agreement before posting.
-- [ ] The three conceded errors are conceded explicitly, not deflected: the DataSAIL premise (§1–2), the Appendix A.2 coordinatewise claim, and the Figure 1 / Table 6 leakage mismatch.
-- [ ] The ε/δ tolerance table is complete for every dataset × configuration — three reviewers asked for it.
-- [ ] Nearest-neighbour / near-duplicate statistics are reported, and TopSim is compared under masked embeddings.
-- [ ] The fixed-clustering α ablation is reported (TuZj Q5a, fYPh Q2).
-- [ ] The §5.4 reweighting is reported with estimate, residual and uncertainty (TuZj Q6).
-- [ ] Every **Action:** names a specific section, table, or figure.
-- [ ] Each reviewer's response fits ICLR's per-comment length limit — split TuZj into "(1/3)…(3/3)" if needed.
-- [ ] Revised PDF uploaded and the diff summarised in each reviewer's response.
