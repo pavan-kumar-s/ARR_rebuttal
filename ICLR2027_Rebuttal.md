@@ -434,7 +434,30 @@ Only the Information Leakage row is affected; the other two reproduce the tables
 **Question-1 — Precise methodological advance over existing constrained splitting frameworks:**
 > Given DataSAIL's support for multiple class memberships, which aspects of EMPIRE require a genuinely different formulation: per-class mention multiplicities, entity-identity isolation, or their combination with the context objective? Please distinguish these requirements from capabilities already present in similarity-aware stratified splitting. What evidence establishes the benefit of the proposed formulation under comparable size and class-support requirements? An appropriately adapted comparison, or a precise explanation of why the relevant adaptation is not feasible, would materially clarify the contribution.
 
-[[ANSWER. Answer the three-way question directly: which of {per-class mention multiplicities, entity-identity isolation, their combination with the context objective} actually requires a new formulation, and which is already available in similarity-aware stratified splitting. No DataSAIL run is being reported. Give the infeasibility argument the reviewer explicitly offers as an alternative: DataSAIL's κ carries no class index, so it cannot enforce a mention-level class constraint, and a like-for-like comparison would measure the constraint difference rather than the methods.]]
+We thank the reviewer. Taking the three candidates in turn.
+
+**Per-class mention multiplicities — requires a different formulation.** This is the point set out in our response to **Weakness-1(a)**: DataSAIL's stratification weight κ is indexed by the element alone, so a sentence contributes the same weight to every class it contains, and **Equation (1)** conserves how many sentences touch a class. The quantity that determines NER training support is how many mentions of that class a split receives, which needs the weight indexed by the pair, as in **Equation (2)**. No setting of κ recovers it, because κ has no class index to vary over.
+
+**Entity-identity isolation — requires a different formulation, and for a separate reason.** DataSAIL's program has two families of variables: ξ_{x,i}, assigning element x to fold i, and ζ_{xx′}, indicating that a pair of elements falls in different folds. Its objective is a weighted cut over ζ. Entity isolation is not a property of an element or of a pair of elements; it is a property of a *target*, which stands in a many-to-many relation to the sentences containing it. Our formulation therefore carries a second variable family indexed by targets — Y_{qi}, whether target i occurs in split q, and S_i, whether it occurs in exactly one — with the counting constraint of Eq. (5). A similarity-aware splitter can *approximate* entity leakage by setting the pairwise weight to indicate shared entities, which is what MinCut does, but a weighted cut over sentence pairs does not express "target i occurs in exactly one split"; it penalises each shared-entity pair that is separated instead of counting the targets that are not isolated. The two differ once a target appears in more than two sentences, which is the common case.
+
+**Their combination with the context objective — this is what α provides**, and it needs both families present in one program: the target-indexed term for entity isolation and the pair-indexed term for context similarity, under the same assignment variables and the same constraints.
+
+**What similarity-aware stratified splitting already provides, and which we do not claim.** Clustering to reduce an O(n²) pairwise program to a constant-size one; an ILP over cluster assignments; split-size constraints with a relative tolerance; per-class stratification at the element level; and a cut objective minimising cross-split similarity. Our context term follows DataSAIL in form, including the cluster-size weighting, which we cite. What is not available there is a class constraint at mention level, a target-indexed isolation objective, or the two in one program.
+
+**Evidence under comparable size and class-support requirements.** This is available in the results, between EMPIRE and MinCut, once δ = 1 is read as the constraint-matched setting — it removes EMPIRE's class-balance constraint, which MinCut also does not enforce, while both operate under the same split-size targets:
+
+| | Entity disjointness (%) ↑ | Class drift (Hellinger) ↓ | Realised split ratios |
+|---|---|---|---|
+| Native | 84.46 | 0.0415 | — |
+| MinCut | 95.19 | 0.1403 | match Native on 23 / 24 |
+| EMPIRE (α = 1, δ = 1) | **96.71** | 0.1407 | match Native on 24 / 24 |
+| EMPIRE (α = 1, δ\*) | 94.62 | **0.0179** | match Native on 24 / 24 |
+
+At class drift matched to 0.0004, EMPIRE attains 1.52 points more entity disjointness than MinCut while holding the native ratios on every dataset. The class constraint's own contribution is then the δ = 1 → δ\* step: drift falls to 0.0179, below Native's own 0.0415, at a cost of 2.09 points of disjointness. Neither figure comes from comparing a constrained method against an unconstrained baseline.
+
+**Why the DataSAIL comparison is not among them.** The adaptation the reviewer asks about is not available, for the reason that makes the formulations differ in the first place: DataSAIL cannot enforce a bound on each class's mention allocation, so the two systems cannot be placed under comparable class-support requirements. Running it would compare EMPIRE under a mention-level class constraint against DataSAIL under a sentence-level one, and would measure the difference between those constraints rather than between the methods.
+
+**Action:** We will add this three-way distinction to Section 2, state explicitly which capabilities of similarity-aware stratified splitting we adopt rather than claim, and restructure Section 5.1 so that δ = 1 is presented as the constraint-matched comparison against MinCut and the δ = 1 → δ\* step as the isolated effect of the class-balance constraint.
 
 **Question-2 — Which constraints and feasibility guarantees were actually used:**
 > (a) Was ε fixed to zero during both the pre-check and main optimization, or could it increase? Please reconcile Section 4.3 with Table 2 and provide the actual tolerances and split counts for configurations where the target ratios changed.
