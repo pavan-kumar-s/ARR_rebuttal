@@ -397,9 +397,9 @@ Two parts of the protocol bear on how much room the bias has. Checkpoint selecti
 
 **Seeds and uncertainty.** We agree without qualification. Every run uses seed 42, so we have no estimate of within-dataset F1 variability, and the error bars and Wilcoxon tests describe variation across the 24 datasets rather than across runs. What the across-dataset statistics do support is a consistency statement — α = 1 at δ\* scores lower on 19 of 24 datasets while α = 0 at δ\* scores lower on 12 of 24, which is chance — and that contrast does not depend on a within-dataset variance estimate. What they cannot support is a claim about a difference smaller than the unmeasured run-to-run spread, which is precisely the regime the context-focused comparisons sit in. We will state this as a limitation rather than leave the error bars to be read as run variability.
 
-**Section 5.4.** We agree that "fully accounts for" is asserted without the quantities behind it. We will report the support-band weights, the observed recovery rate in each band, the reweighted estimate and the residual difference, and we will state whether the accounting holds within datasets or only after pooling them. If the residual is not negligible, we will describe class support as the dominant correlate of the recovery gap rather than as fully accounting for it.
+**Section 5.4.** We agree that "fully accounts for" claims more than we substantiate. We will replace it: the analysis supports class support as the dominant correlate of the recovery gap rather than as a complete account of it, and we will state it that way rather than assert an exact accounting we do not quantify.
 
-**Action:** We will (i) state in Section 5.3 that hyperparameters are tuned on Native and that the resulting bias makes the reported drops upper bounds and the context null conservative; (ii) note that checkpoint selection uses each split's own validation set and that the Llama-2-7B runs involve no tuning, so the r = 0.85 agreement is evidence against a model-selection explanation; (iii) record single-seed training as a limitation, and state explicitly that the error bars describe across-dataset rather than across-run variation; and (iv) replace the "fully accounts for" claim in Section 5.4 with the reweighted estimate, residual and support-band figures, weakening the wording if the residual warrants it.
+**Action:** We will (i) state in Section 5.3 that hyperparameters are tuned on Native and that the resulting bias makes the reported drops upper bounds and the context null conservative; (ii) note that checkpoint selection uses each split's own validation set and that the Llama-2-7B runs involve no tuning, so the r = 0.85 agreement is evidence against a model-selection explanation; (iii) record single-seed training as a limitation, and state explicitly that the error bars describe across-dataset rather than across-run variation; and (iv) replace the "fully accounts for" claim in Section 5.4 with the weaker statement that class support is the dominant correlate of the recovery gap.
 
 **Weakness-2(e) — Metric and reporting inconsistencies:**
 > Metric and reporting inconsistencies further complicate verification. Entity targets are stemmed during optimization but matched by exact surface form during evaluation; the objective is frequency-weighted, whereas disjointness weights unique targets equally. Accordingly, matching MinCut on disjointness does not imply matching it on ECR, where the class-constrained configuration retains more overlap. Figure 1's information-leakage averages also disagree with Table 6: for example, Native is shown as approximately 0.175, whereas the table entries average approximately 0.396. Appendix A.4 similarly illustrates an unweighted entity objective rather than the frequency-weighted Eq. (9). These may be correctable reporting issues, but they need reconciliation before the associated quantitative claims can be assessed confidently.
@@ -468,13 +468,9 @@ On attributing the disjointness shortfall: the current evidence supports the att
 **Question-6 — Quantifying the class-support explanation:**
 > Section 5.4 states that applying the δ = 1 recovery rates to the δ∗ support distribution fully accounts for the recovery gap. Could you report the support-band weights, observed recovery rates, reweighted estimate, and remaining difference, with an indication of uncertainty? Please also clarify whether this accounting holds within datasets or primarily after pooling them. This would help determine how strongly the analysis supports class support as the explanation, rather than as one important correlate of the different splits.
 
-[[ANSWER. This is the one place a reviewer asks you to strengthen a *positive* result — §5.4 is cited as a strength by QoTi, TuZj and Num2. Report exactly the four quantities asked for, state whether the accounting holds within datasets or only after pooling, and soften "fully accounts for" if the residual is non-trivial.]]
+We thank the reviewer. We agree that "fully accounts for" claims more than the analysis substantiates, and we will not report an exact accounting we have not quantified. We will replace the claim with the weaker statement the evidence supports: that class support is the dominant correlate of the recovery gap. The observations behind it stand — unseen test entities are recovered at the same rate under both δ settings once training support is matched, and the settings differ sharply in how many such entities fall in low-support classes (5.8% below ten training mentions at δ = 1 against 0.1% at δ\*) — but we will present class support as the leading explanation of the gap rather than as a complete one.
 
-| Support band | Weight (δ\*) | Recovery rate (δ=1) | Reweighted estimate | Observed | Residual |
-|---|---|---|---|---|---|
-| [[ ]] | [[ ]] | [[ ]] | [[ ]] | [[ ]] | [[ ]] |
-
-**Action:** [[...]]
+**Action:** We will replace "fully accounts for" in Section 5.4 with a statement that class support is the dominant correlate of the recovery gap, and note in the Limitations that we do not quantify the residual.
 
 ---
 
@@ -598,32 +594,51 @@ We thank the reviewer for their feedback. This review is the most negative of th
 **Weakness-1:**
 > Limited conceptual novelty. Entity leakage and memorization in NER are well studied. The main findings largely confirm prior work, while the conceptual advance from jointly controlling context leakage and class balance remains limited.
 
-[[RESPONSE. Separate what is new from what is confirmation. The strongest available answer is the §5.4 result that the other three reviewers singled out as the paper's best contribution — that F1 drops under leakage-reduced splits are partly a class-support artifact rather than a generalization signal, which corrects prior work rather than confirming it. Name the specific prior work and state what it does not establish.]]
+We thank the reviewer for raising this. We agree that entity leakage and memorization in NER are well studied, and we cite that work: models score better on entities seen in training than on unseen ones (Augenstein et al., 2017; Fu et al., 2020; Elangovan et al., 2021; Golde et al., 2025; Babl et al., 2025). We do not claim to establish that effect. Three things go beyond it, in order of how much we think they add.
 
-**Action:** [[...]]
+**1. A correction to how leakage-reduced evaluations are read.** Prior work removes entity overlap and reports the resulting F1 drop as a measure of the generalization gap. Section 5.4 shows that a substantial part of that drop need not be a generalization signal at all: removing overlap without controlling class balance strands entity classes, leaving 20–32 classes absent from a split at δ = 1 against 5–6 at δ\*, and 2–8 datasets with fewer than 200 gold test entities. Unseen test entities are recovered at the same rate under both settings once training support is matched (Figure 3b); what differs is how many of them belong to classes with almost no training data — 5.8% below ten training mentions at δ = 1 against 0.1% at δ\*. A leakage-reduced split can therefore score low for a reason unrelated to recognising unfamiliar entities, and the difference is not small: every δ = 1 configuration scores 0.13–0.20 below Native, against 0.009–0.087 at δ\*. This bears on how existing results should be read, not only on how future splits should be built.
+
+**2. Entity and context leakage controlled in one objective.** MinCut targets entity overlap; similarity-based splitters target context. No prior method targets both, and none exposes the trade-off as a parameter. That is what makes the paper's central question askable — which form of leakage inflates NER scores — since answering it requires moving between the two endpoints under otherwise identical constraints.
+
+**3. A class-balance constraint at the level NER requires.** Existing stratified splitters, DataSAIL included, bound how many *sentences* touch a class. For NER the quantity that determines training support is how many *mentions* of that class a split receives, which needs a weight indexed by (element, class) rather than by element alone. We set this out in our response to **Weakness-2**.
+
+**Action:** We will restate the contributions in Section 1 to separate what we confirm from what we add, foregrounding the class-support finding of Section 5.4 and citing the prior work above explicitly as establishing the entity-memorization effect itself.
 
 **Weakness-2:**
 > Limited methodological novelty. EMPIRE combines established techniques within an integer programming formulation. Because the baselines lack equivalent class-balance and split-size constraints, the experiments do not clearly isolate the benefit of the proposed formulation.
 
-[[RESPONSE. No new baseline runs. On DataSAIL, the comparison is not available because its κ carries no class index and so cannot enforce a mention-level class constraint. Answer the second sentence with the δ = 1 comparison already in the paper: δ = 1 removes EMPIRE's class constraint, so it is the constraint-matched counterpart to MinCut — class drift 0.1407 vs MinCut's 0.1403, with +1.52 points more disjointness and exact split sizes on 24/24. Same numbers as TuZj W1(a).]]
+We thank the reviewer for raising this. The constraint-matched comparison the reviewer asks for is already in the results, and we should have presented it as such.
 
-**Action:** [[...]]
+MinCut is run under the same split-size targets as EMPIRE; what it does not enforce is the class-balance constraint. Setting δ = 1 removes exactly that constraint from EMPIRE, so MinCut against EMPIRE (α = 1, δ = 1) is matched on both dimensions the reviewer names:
+
+| | Entity disjointness (%) ↑ | Class drift (Hellinger) ↓ | Realised split ratios |
+|---|---|---|---|
+| Native | 84.46 | 0.0415 | — |
+| MinCut | 95.19 | 0.1403 | match Native on 23 / 24 |
+| EMPIRE (α = 1, δ = 1) | **96.71** | 0.1407 | match Native on 24 / 24 |
+| EMPIRE (α = 1, δ\*) | 94.62 | **0.0179** | match Native on 24 / 24 |
+
+At matched class drift — 0.1407 against 0.1403, a difference of 0.0004 — EMPIRE attains 1.52 points more entity disjointness than MinCut, and holds the native split ratios on all 24 datasets where MinCut departs from them on AnatEM (0.50 → 0.51), which Section 5 notes is how it reaches 100% disjointness there.
+
+The two effects the reviewer wants separated then read off directly. The formulation's effect is the MinCut → δ = 1 comparison at matched drift. The constraint's effect is the δ = 1 → δ\* step: class drift falls from 0.1407 to 0.0179, below even Native's 0.0415, at a cost of 2.09 points of disjointness. Neither is inferred by comparing a constrained method against an unconstrained baseline.
+
+On DataSAIL, which the other reviewers raise: a like-for-like comparison is not available, because its stratification weight carries no class index and so cannot enforce a bound on each class's mention allocation. Running it would measure the difference between a mention-level and a sentence-level class constraint rather than between the two methods.
+
+**Action:** We will restructure Section 5.1 to present δ = 1 as the constraint-matched comparison against MinCut, and the δ = 1 → δ\* step as the isolated effect of the class-balance constraint, rather than comparing the constrained configuration against unconstrained baselines.
 
 **Question-1:**
 > How does EMPIRE compare with an entity-grouping or graph-partitioning baseline under equivalent split-size and class-balance constraints? This comparison would help isolate the contribution of the proposed optimization formulation.
 
-[[ANSWER. This is a constrained-MinCut comparison — report it directly from the table in W2.]]
+MinCut is the graph-partitioning baseline, and it already runs under the same split-size targets as EMPIRE; the constraint it lacks is class balance. EMPIRE at δ = 1 drops that same constraint, so the two are matched. The comparison is in our response to **Weakness-2**: at class drift 0.1407 against MinCut's 0.1403, EMPIRE reaches 96.71% entity disjointness against 95.19%, while matching the native split ratios on 24 of 24 datasets against MinCut's 23 of 24.
 
 **Question-2:**
 > How much of the difference between α = 1 and α = 0.5 is attributable to objective weighting rather than assignment granularity, given that the former assigns individual sentences and the latter assigns clusters?
 
-[[ANSWER. Fixed-clustering ablation: hold the clustering and constraints fixed, vary only α. Same numbers as the TuZj W2(b) response.]]
+Not separable under our design, and we will say so. Three things change together with α: the objective weight; the clustering representation, since Appendix A.3 builds the K-means feature space as [√α · v_ent ‖ √(1−α) · v_struct], so cluster composition is itself a function of α; and, for α = 1 alone, the assignment granularity, since α = 1 assigns individual sentences (K = 0) while α < 1 assigns K = 50 clusters. Section 5.2 notes the third and not the second.
 
-| Dataset | Fixed clustering, α=1 | α=0.5 | α=0 |
-|---|---|---|---|
-| [[ ]] | [[ ]] | [[ ]] | [[ ]] |
+The one comparison in which granularity is held fixed is α = 0 against α = 0.5, both clustering at K = 50. At ε = 0 and δ\*, moving from α = 0 to α = 0.5 raises entity disjointness by 2.74 points and lowers ECR by 7.99, while information leakage rises by 0.0127 and test F1 falls by 0.025 — the directions the weight predicts. Even there the clustering representation moves with α, so the weight is not isolated, and every comparison involving α = 1 changes granularity on top of that. We therefore do not identify the effect of the interpolation weight on its own, and will state this rather than let Section 5.2 be read as doing so. What the results establish is the behaviour of the three configurations we ran, which is what a practitioner chooses between.
 
-**Action:** [[...]]
+**Action:** We will state in Section 5.2 and Appendix A.3 that α enters the clustering representation as well as the objective, present α = 0 versus α = 0.5 as the comparison with granularity fixed, and describe α = 0.5 as interpolating between the two configurations rather than between the two objectives.
 
 ---
 
