@@ -587,14 +587,12 @@ Entity isolation is a separate objective that DataSAIL does not have at all: its
 
 ---
 
-# Reviewer fYPh:
-
-We thank the reviewer for their feedback. This review is the most negative of the four (rating 1, soundness 1, informativeness 1, no strengths listed), and both weaknesses are novelty judgements rather than technical errors, so we answer them with the constraint-matched evidence the reviewer asks for in their questions.
+# Reviewer fYPh: 
 
 **Weakness-1:**
 > Limited conceptual novelty. Entity leakage and memorization in NER are well studied. The main findings largely confirm prior work, while the conceptual advance from jointly controlling context leakage and class balance remains limited.
 
-We thank the reviewer for raising this. We agree that entity leakage and memorization in NER are well studied, and we cite that work: models score better on entities seen in training than on unseen ones (Augenstein et al., 2017; Fu et al., 2020; Elangovan et al., 2021; Golde et al., 2025; Babl et al., 2025). We do not claim to establish that effect. Three things go beyond it, in order of how much we think they add.
+We agree that entity leakage and memorization in NER are well studied, and we cite that work: models score better on entities seen in training than on unseen ones (Augenstein et al., 2017; Fu et al., 2020; Elangovan et al., 2021; Golde et al., 2025; Babl et al., 2025). We do not claim to establish that effect. Three things go beyond it, in order of how much we think they add.
 
 **1. A correction to how leakage-reduced evaluations are read.** Prior work removes entity overlap and reports the resulting F1 drop as a measure of the generalization gap. Section 5.4 shows that a substantial part of that drop need not be a generalization signal at all: removing overlap without controlling class balance strands entity classes, leaving 20–32 classes absent from a split at δ = 1 against 5–6 at δ\*, and 2–8 datasets with fewer than 200 gold test entities. Unseen test entities are recovered at the same rate under both settings once training support is matched (Figure 3b); what differs is how many of them belong to classes with almost no training data — 5.8% below ten training mentions at δ = 1 against 0.1% at δ\*. A leakage-reduced split can therefore score low for a reason unrelated to recognising unfamiliar entities, and the difference is not small: every δ = 1 configuration scores 0.13–0.20 below Native, against 0.009–0.087 at δ\*. This bears on how existing results should be read, not only on how future splits should be built.
 
@@ -622,7 +620,7 @@ At matched class drift — 0.1407 against 0.1403, a difference of 0.0004 — EMP
 
 The two effects the reviewer wants separated then read off directly. The formulation's effect is the MinCut → δ = 1 comparison at matched drift. The constraint's effect is the δ = 1 → δ\* step: class drift falls from 0.1407 to 0.0179, below even Native's 0.0415, at a cost of 2.09 points of disjointness. Neither is inferred by comparing a constrained method against an unconstrained baseline.
 
-On DataSAIL, which the other reviewers raise: a like-for-like comparison is not available, because its stratification weight carries no class index and so cannot enforce a bound on each class's mention allocation. Running it would measure the difference between a mention-level and a sentence-level class constraint rather than between the two methods.
+On DataSAIL a like-for-like comparison is not available, because its stratification weight carries no class index and so cannot enforce a bound on each class's mention allocation. Running it would measure the difference between a mention-level and a sentence-level class constraint rather than between the two methods.
 
 **Action:** We will restructure Section 5.1 to present δ = 1 as the constraint-matched comparison against MinCut, and the δ = 1 → δ\* step as the isolated effect of the class-balance constraint, rather than comparing the constrained configuration against unconstrained baselines.
 
