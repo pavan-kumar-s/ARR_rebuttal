@@ -44,7 +44,7 @@ must stay consistent across those sections. Check this map before posting.
 
 Shared artifacts that several sections will cite — build each once, reuse the
 same numbers everywhere:
-  - DataSAIL / constrained-MinCut baseline table
+  - (no new baseline runs: DataSAIL and constrained-MinCut are NOT being run)
   - per-dataset ε and δ tolerance table
   - nearest-neighbour / near-duplicate similarity table
   - fixed-clustering α ablation
@@ -427,7 +427,7 @@ Only the Information Leakage row is affected; the other two reproduce the tables
 **Question-1 — Precise methodological advance over existing constrained splitting frameworks:**
 > Given DataSAIL's support for multiple class memberships, which aspects of EMPIRE require a genuinely different formulation: per-class mention multiplicities, entity-identity isolation, or their combination with the context objective? Please distinguish these requirements from capabilities already present in similarity-aware stratified splitting. What evidence establishes the benefit of the proposed formulation under comparable size and class-support requirements? An appropriately adapted comparison, or a precise explanation of why the relevant adaptation is not feasible, would materially clarify the contribution.
 
-[[ANSWER. Answer the three-way question directly: which of {per-class mention multiplicities, entity-identity isolation, their combination with the context objective} actually requires a new formulation, and which is already available in similarity-aware stratified splitting. Then point to the baseline table in W1(a).]]
+[[ANSWER. Answer the three-way question directly: which of {per-class mention multiplicities, entity-identity isolation, their combination with the context objective} actually requires a new formulation, and which is already available in similarity-aware stratified splitting. No DataSAIL run is being reported — establish the distinction formally, as in W1(a), and say plainly that the comparison is not included.]]
 
 **Question-2 — Which constraints and feasibility guarantees were actually used:**
 > (a) Was ε fixed to zero during both the pre-check and main optimization, or could it increase? Please reconcile Section 4.3 with Table 2 and provide the actual tolerances and split counts for configurations where the target ratios changed.
@@ -535,7 +535,7 @@ Every sentence contains both classes, so n^c = 12 under **Equation (1)** and n^c
 
 Both splits satisfy **Equation (1)** exactly, at its tightest setting δ = 0, for both classes: to DataSAIL they are indistinguishable. Under **Equation (2)** they are not. Split A leaves training 16 of the 33 `ORG` mentions — 48% against a 67% target — and leaves the test set just 4 of the 33 `PER` mentions, 12% against 33%. A model evaluated on it scores poorly on `ORG` for want of training support, and its `PER` score rests on four test mentions; neither has anything to do with whether the test entities are unseen. That is the confound of our Section 5.4, reintroduced by a constraint reporting zero violation. Split B is the same 8 / 4 sentence split, equally admissible to DataSAIL, and meets **Equation (2)** exactly at 22 / 11 for both classes. DataSAIL cannot distinguish A from B; our formulation rejects A and admits B.
 
-**Action:** We will replace the incorrect "one label per sample" justification in Sections 1–2 with the κ(x) versus A_{x,c} distinction above, and add DataSAIL as a baseline.
+**Action:** We will replace the incorrect "one label per sample" justification in Sections 1–2 with the κ(x) versus A_{x,c} distinction above.
 
 **Weakness-2:**
 > The context-leakage objective is not convincingly validated. Reducing average cross-split embedding similarity does not significantly lower F1 under the balanced setting, while TopSim lowers F1 despite a smaller reduction in this metric. The paper acknowledges that average similarity can miss near-duplicate contexts. This makes it unclear whether the objective captures the context overlap that actually affects evaluation.
@@ -574,7 +574,7 @@ No reported result depends on the difference. δ\* enters the pipeline as the to
 **Question-1:**
 > Clarification: What specific limitation prevents a comparison with DataSAIL given its support for multiple class memberships? Is the distinction principally the handling of entity mention counts and the entity-isolation objective?
 
-Nothing prevents the comparison, and we are adding DataSAIL as a baseline. The reviewer's reading is correct: the distinction is the handling of entity mention counts together with the entity-isolation objective, and the two are needed jointly rather than separately.
+The reviewer's reading is correct: the distinction is the handling of entity mention counts together with the entity-isolation objective, and the two are needed jointly rather than separately. We establish it as a formal difference rather than an empirical one — we do not report a DataSAIL run, and we no longer rest any claim on DataSAIL's absence from the comparison.
 
 Mention counts are what DataSAIL's stratification cannot express, for the reason given in our response to **Weakness-1** — its weight κ is indexed by the element alone, so a sentence contributes the same weight to every class it contains, and the constraint conserves how many sentences touch a class rather than how many mentions of it each split receives. Entity isolation is a separate objective that DataSAIL does not have at all: its objective minimises cross-split similarity, which is a context criterion, and nothing in it requires a given entity to occur in exactly one split. EMPIRE needs both because the two interact — isolating entities concentrates classes, and only a mention-level class constraint prevents that from starving a split of a class, which Section 5.4 shows is what otherwise drives the apparent F1 drop.
 
@@ -603,11 +603,7 @@ We thank the reviewer for their feedback. This review is the most negative of th
 **Weakness-2:**
 > Limited methodological novelty. EMPIRE combines established techniques within an integer programming formulation. Because the baselines lack equivalent class-balance and split-size constraints, the experiments do not clearly isolate the benefit of the proposed formulation.
 
-[[RESPONSE. The second sentence is the actionable half — answer it with the constraint-matched baseline. Same numbers as the QoTi, TuZj and Num2 responses.]]
-
-| Dataset | Native | MinCut | MinCut + constraints | TopSim | DataSAIL | EMPIRE (α=1, δ\*) | EMPIRE (α=0, δ\*) |
-|---|---|---|---|---|---|---|---|
-| [[ ]] | [[ ]] | [[ ]] | [[ ]] | [[ ]] | [[ ]] | [[ ]] | [[ ]] |
+[[RESPONSE. No new baseline runs. Answer the second sentence with the δ = 1 comparison already in the paper: δ = 1 removes EMPIRE's class constraint, so it is the constraint-matched counterpart to MinCut — class drift 0.1407 vs MinCut's 0.1403, with +1.52 points more disjointness and exact split sizes on 24/24. Same numbers as TuZj W1(a).]]
 
 **Action:** [[...]]
 
@@ -633,7 +629,9 @@ We thank the reviewer for their feedback. This review is the most negative of th
 
 - [ ] Every Weakness and Question has a response (18 weakness blocks + 10 question blocks across 4 reviewers).
 - [ ] Every `[[...]]` placeholder is replaced.
-- [ ] Shared numbers are **identical** across reviewer sections — baseline table, tolerance table, NN similarity table, α ablation. Inconsistency between sections is visible to all reviewers.
+- [ ] Shared numbers are **identical** across reviewer sections — tolerance table, Table 2/3/5/7 figures, δ = 1 comparisons.
+- [ ] No response promises a baseline run (DataSAIL, constrained MinCut) or any other new experiment.
+- [ ] Inconsistency between sections is visible to all reviewers — check cross-section agreement before posting.
 - [ ] The three conceded errors are conceded explicitly, not deflected: the DataSAIL premise (§1–2), the Appendix A.2 coordinatewise claim, and the Figure 1 / Table 6 leakage mismatch.
 - [ ] The ε/δ tolerance table is complete for every dataset × configuration — three reviewers asked for it.
 - [ ] Nearest-neighbour / near-duplicate statistics are reported, and TopSim is compared under masked embeddings.
