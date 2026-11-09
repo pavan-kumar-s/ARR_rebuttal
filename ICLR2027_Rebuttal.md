@@ -389,9 +389,17 @@ Removing the class-balance constraint leaves the same context objective in place
 **Weakness-2(d) — Model selection and uncertainty:**
 > Model selection and uncertainty remain relevant to the interpretation of F1 differences. Appendix A.8 tunes BiLSTM-CRF hyperparameters on Native and transfers them to the other splits. This keeps configurations consistent but may favor Native through model selection. Training uses a single reported seed, while the statistical tests and error bars primarily characterize variation across datasets rather than within-dataset F1 variability. These limitations are particularly relevant to the small context-focused differences. The class-support analysis in Section 5.4 is valuable, but its stronger claim that reweighting "fully accounts for" the recovery gap is not accompanied by the resulting estimate, residual difference, or uncertainty.
 
-[[RESPONSE. Three separable asks: (i) Native-tuned hyperparameters may favour Native — re-tune per split on a subset, or state the bias direction explicitly; (ii) single seed — report multi-seed mean ± std at least for the context-focused comparisons, where the differences are smallest; (iii) the "fully accounts for" claim — answered in Q6 below.]]
+We thank the reviewer. We agree on both counts, and set out below what in the existing results bears on each.
 
-**Action:** [[...]]
+**Hyperparameter selection.** Appendix A.8 tunes the learning rate, weight decay and dropout on the native split and reuses them for every other split of that dataset, so the reviewer is right that model selection favours Native. The direction matters for how each claim should be read. A configuration tuned for Native will tend to score higher on Native than a per-split tuned model would, which inflates every ΔF1 we report in the negative direction. The entity result (α = 1, δ\*: −0.087) is therefore an upper bound on the true drop. The context result runs the other way: a bias pushing ΔF1 negative did not prevent α = 0 at δ\* from landing at −0.009 and not significant, so the null is conservative rather than flattered. We will state this reading explicitly.
+
+Two parts of the protocol bear on how much room the bias has. Checkpoint selection is not Native-tuned — we restore the checkpoint with the best validation F1 *on each split's own validation set* — so only the three hyperparameters are transferred. And the Llama-2-7B experiment receives no tuning at all: a single fixed configuration (lr 2 × 10⁻⁵, cosine schedule, batch 128) is used for every dataset and every split, with no native-split search anywhere in the pipeline. Its ΔF1 pattern nevertheless tracks the BiLSTM-CRF's at Pearson r = 0.85 over 30 dataset–configuration pairs, and reproduces the direction on all five datasets (α = 1, δ\*: −0.115; α = 0, δ\*: +0.014). If native-split tuning were generating the BiLSTM-CRF pattern, a model with no native-split tuning should not reproduce it.
+
+**Seeds and uncertainty.** We agree without qualification. Every run uses seed 42, so we have no estimate of within-dataset F1 variability, and the error bars and Wilcoxon tests describe variation across the 24 datasets rather than across runs. What the across-dataset statistics do support is a consistency statement — α = 1 at δ\* scores lower on 19 of 24 datasets while α = 0 at δ\* scores lower on 12 of 24, which is chance — and that contrast does not depend on a within-dataset variance estimate. What they cannot support is a claim about a difference smaller than the unmeasured run-to-run spread, which is precisely the regime the context-focused comparisons sit in. We will state this as a limitation rather than leave the error bars to be read as run variability.
+
+**Section 5.4.** We agree that "fully accounts for" is asserted without the quantities behind it. We will report the support-band weights, the observed recovery rate in each band, the reweighted estimate and the residual difference, and we will state whether the accounting holds within datasets or only after pooling them. If the residual is not negligible, we will describe class support as the dominant correlate of the recovery gap rather than as fully accounting for it.
+
+**Action:** We will (i) state in Section 5.3 that hyperparameters are tuned on Native and that the resulting bias makes the reported drops upper bounds and the context null conservative; (ii) note that checkpoint selection uses each split's own validation set and that the Llama-2-7B runs involve no tuning, so the r = 0.85 agreement is evidence against a model-selection explanation; (iii) record single-seed training as a limitation, and state explicitly that the error bars describe across-dataset rather than across-run variation; and (iv) replace the "fully accounts for" claim in Section 5.4 with the reweighted estimate, residual and support-band figures, weakening the wording if the residual warrants it.
 
 **Weakness-2(e) — Metric and reporting inconsistencies:**
 > Metric and reporting inconsistencies further complicate verification. Entity targets are stemmed during optimization but matched by exact surface form during evaluation; the objective is frequency-weighted, whereas disjointness weights unique targets equally. Accordingly, matching MinCut on disjointness does not imply matching it on ECR, where the class-constrained configuration retains more overlap. Figure 1's information-leakage averages also disagree with Table 6: for example, Native is shown as approximately 0.175, whereas the table entries average approximately 0.396. Appendix A.4 similarly illustrates an unweighted entity objective rather than the frequency-weighted Eq. (9). These may be correctable reporting issues, but they need reconciliation before the associated quantitative claims can be assessed confidently.
@@ -477,45 +485,107 @@ We thank the reviewer for their valuable feedback, and for recognising the value
 **Weakness-1:**
 > The distinction from DataSAIL needs to be established more carefully. The paper states that DataSAIL assumes one label per sample, but its published formulation explicitly permits membership in multiple classes and combines stratification with similarity-aware ILP splitting. EMPIRE's entity-isolation objective and mention-count constraints may still add value, but the stated justification for omitting this baseline is insufficient.
 
-[[RESPONSE. Concede the incorrect premise, state the actual formal distinction, and give the baseline comparison. The reviewer's middle sentence concedes that the entity-isolation objective and mention-count constraints may add value — give them the evidence that they do. Use the same numbers as the QoTi, TuZj and fYPh responses.]]
+We thank the reviewer for raising this. One limitation of DataSAIL on NER data is that its stratification constraint conserves the number of *sentences* that touch a class, not the number of *mentions* of that class. These are different quantities, and the second is what determines training support.
 
-| Dataset | Native | MinCut | MinCut + constraints | TopSim | DataSAIL | EMPIRE (α=1, δ\*) | EMPIRE (α=0, δ\*) |
-|---|---|---|---|---|---|---|---|
-| [[ ]] | [[ ]] | [[ ]] | [[ ]] | [[ ]] | [[ ]] | [[ ]] | [[ ]] |
+DataSAIL does permit multi-class membership, and it enforces stratification for each class separately. The issue is not multi-label capability but **what the constraint counts**.
 
-**Action:** [[...]]
+**The formal gap.** The class-stratification constraint in DataSAIL is
+
+> **Equation (1)** ∑_{x ∈ D_i ∩ D^{c}} κ(x) ≥ (1 − δ) · s_i · n^c  for every split i and class c
+
+where:
+
+- D is the set of data elements (here, sentences), and D_i those assigned to split i;
+- D^{c} is the class-c subset, i.e. the elements containing **at least one** mention of class c;
+- n^c := ∑_{x ∈ D^{c}} κ(x); κ(x) is its total weight (weight here is the number of samples in the cluster);
+- s_i is the target fraction of split i, and δ a relative tolerance.
+
+The weight κ is indexed by the element alone, **κ : D → ℕ≥1**, and equals 1 for every elementary data point (κ > 1 only when x is a cluster of points). The class enters nowhere except the membership test. A sentence therefore contributes the same κ(x) to every class it touches: a sentence with twelve `PER` and one `ORG` counts once toward `PER` and once toward `ORG`.
+
+Mention-level balance requires the same constraint with the weight indexed by the **pair** — κ(x, c), the number of mentions of class c in element x. We collect these in the **class matrix** A ∈ ℕ^{|D| × C}, with A_{x,c} := κ(x, c). Our constraint is then
+
+> **Equation (2)** ∑_{x ∈ D_i} A_{x,c} ≥ (1 − δ) · s_i · n^c, with n^c := ∑_{x ∈ D} A_{x,c}  for every split i and class c
+
+The sum runs over all of D_i rather than D_i ∩ D^{c}: A_{x,c} = 0 for any element with no class-c mention, so the set-membership test is no longer needed.
+
+**The difference is exactly a threshold.** DataSAIL's stratification is driven by the **binary** matrix [A_{x,c} > 0] — whether element x contains *any* class-c mention — weighted by the class-independent κ(x). Ours is driven by **A itself**. Thresholding A discards the multiplicities, and no choice of κ recovers them, because κ has no class index to vary over. The two agree only when every element carries exactly one mention — i.e. when NER reduces to sentence classification.
+
+
+**A minimal instance:** 12 sentences, two classes, an 8 / 4 train–test split (s_train = 2/3, s_test = 1/3), mention counts (`PER`, `ORG`):
+
+| | s1 | s2 | s3 | s4 | s5 | s6 | s7 | s8 | s9 | s10 | s11 | s12 | total |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `PER` | 5 | 5 | 5 | 4 | 4 | 4 | 1 | 1 | 1 | 1 | 1 | 1 | 33 |
+| `ORG` | 1 | 1 | 1 | 1 | 1 | 1 | 5 | 5 | 5 | 4 | 4 | 4 | 33 |
+
+Every sentence contains both classes, so n^c = 12 under **Equation (1)** and n^c = 33 under **Equation (2)**. At δ = 0 this makes **Equation (1)** require ≥ 8 train and ≥ 4 test *sentences* per class, and **Equation (2)** require ≥ 22 train and ≥ 11 test *mentions* per class. Compare
+
+- **Split A** — train = {s1, …, s8}
+- **Split B** — train = {s1, s2, s4, s5, s7, s8, s10, s11}
+
+| | Split A | Split B |
+|---|---|---|
+| Sentences (train / test) | 8 / 4 | 8 / 4 |
+| **Equation (1)** DataSAIL, `PER` (train / test) | 8 ≥ 8, 4 ≥ 4 — **satisfied at δ = 0** | 8 ≥ 8, 4 ≥ 4 — **satisfied at δ = 0** |
+| **Equation (1)** DataSAIL, `ORG` (train / test) | 8 ≥ 8, 4 ≥ 4 — **satisfied at δ = 0** | 8 ≥ 8, 4 ≥ 4 — **satisfied at δ = 0** |
+| `PER` mentions (train / test) | **29 / 4** | 22 / 11 |
+| `ORG` mentions (train / test) | **16 / 17** | 22 / 11 |
+| **Equation (2)** EMPIRE, `PER` (train / test) | 29 ≥ 22, **4 ≥ 11 fails** — **infeasible at δ = 0** | 22 ≥ 22, 11 ≥ 11 — **satisfied at δ = 0** |
+| **Equation (2)** EMPIRE, `ORG` (train / test) | **16 ≥ 22 fails**, 17 ≥ 11 — **infeasible at δ = 0** | 22 ≥ 22, 11 ≥ 11 — **satisfied at δ = 0** |
+
+Both splits satisfy **Equation (1)** exactly, at its tightest setting δ = 0, for both classes: to DataSAIL they are indistinguishable. Under **Equation (2)** they are not. Split A leaves training 16 of the 33 `ORG` mentions — 48% against a 67% target — and leaves the test set just 4 of the 33 `PER` mentions, 12% against 33%. A model evaluated on it scores poorly on `ORG` for want of training support, and its `PER` score rests on four test mentions; neither has anything to do with whether the test entities are unseen. That is the confound of our Section 5.4, reintroduced by a constraint reporting zero violation. Split B is the same 8 / 4 sentence split, equally admissible to DataSAIL, and meets **Equation (2)** exactly at 22 / 11 for both classes. DataSAIL cannot distinguish A from B; our formulation rejects A and admits B.
+
+**Action:** We will replace the incorrect "one label per sample" justification in Sections 1–2 with the κ(x) versus A_{x,c} distinction above, and add DataSAIL as a baseline.
 
 **Weakness-2:**
 > The context-leakage objective is not convincingly validated. Reducing average cross-split embedding similarity does not significantly lower F1 under the balanced setting, while TopSim lowers F1 despite a smaller reduction in this metric. The paper acknowledges that average similarity can miss near-duplicate contexts. This makes it unclear whether the objective captures the context overlap that actually affects evaluation.
 
-[[RESPONSE. Report nearest-neighbour / near-duplicate statistics alongside the means, and compare TopSim under the same masked embeddings. Then either defend the general claim with that evidence or narrow it to the tested procedure.]]
+We thank the reviewer for raising this. The comparison with TopSim is not like-for-like: **TopSim enforces no class-balance constraint**, so the EMPIRE configuration to set against it is α = 0 with δ = 1, not α = 0 with δ\*. At matched constraints the ordering reverses. Mean paired difference in BiLSTM-CRF test F1 from Native over the 24 datasets (Table 7):
 
-| Dataset | Split | Mean cross-split sim | Max NN sim | p99 NN sim | # pairs > [[τ]] |
-|---|---|---|---|---|---|
-| [[ ]] | [[ ]] | [[ ]] | [[ ]] | [[ ]] | [[ ]] |
+| Configuration | Class-balance constraint | ΔF1 vs. Native | Lower on |
+|---|---|---|---|
+| TopSim | none | −0.085 (p < 0.001) | 21 / 24 |
+| EMPIRE (α = 0, δ = 1) | none | **−0.128 (p < 0.001)** | 21 / 24 |
+| EMPIRE (α = 0, δ\*) | enforced | −0.009 (n.s.) | 12 / 24 |
 
-**Action:** [[...]]
+Without the class-stratification constraint our context-only split lowers F1 by 0.128 against TopSim's 0.085, on the same datasets at the same split sizes. The context objective is therefore not inert; the −0.009 figure is a property of α = 0 **under the δ\* class constraint**, which restricts which partitions the solver may return and so limits how much context leakage it can remove (Section 5.5).
+
+**Why the metric does not register what TopSim removes.** We agree, and the reason is structural rather than statistical. The objective minimises I_L = ∑_{l₁<l₂} W_{l₁,l₂} · v_{l₁} · v_{l₂} · Z_{l₁,l₂} over **cluster centroids**, and clusters are assigned atomically. A near-duplicate pair inside one cluster can therefore never be cut, and a near-duplicate pair across clusters reaches the objective only through two centroids. No term in the objective is sensitive to an individual highly similar training–test pair. The reported metric, a mean over all cross-split sentence pairs, is insensitive to them for the same reason. This is consistent with what Section 5.3 and Appendix A.6 already say about TopSim: it removes near-duplicate contexts, costs 0.085 F1, and moves information leakage by only 0.013.
+
+**The claim we will make instead.** That reducing mean cross-split centroid similarity, under fixed split sizes and the δ\* class constraint, leaves F1 statistically unchanged — while reducing near-duplicate similarity (TopSim) and removing the class constraint (δ = 1) both lower it. We will not claim a general contrast between entity and context memorization, and we will state that our metric is insensitive by construction to the near-duplicate form of context overlap.
+
+**Action:** We will (i) replace the general claim in the abstract and Section 5.3 with the scoped statement above; (ii) report the δ = 1 context result alongside the δ\* one wherever that claim is made; and (iii) state in Section 3.3 that the cluster-level objective has no term sensitive to an individual near-duplicate pair.
 
 **Weakness-3:**
 > The feasibility guarantees and reported settings are inconsistent. Section 4.3 states that split sizes are exact with ε = 0, while Table 2 reports deviations for several clustered configurations. Appendix A.2 also claims that minimizing the sum of tolerances independently minimizes every class's tolerance, although these variables are coupled through the shared assignment. These issues matter because precise control of split sizes and class balance is central to the contribution.
 
-[[RESPONSE. Two distinct points. (i) The ε/δ reporting inconsistency — answer with the per-dataset tolerance table. (ii) The Appendix A.2 claim — it is false as written; minimising the sum gives a minimum-sum vector, not per-class minima. Concede it and state whether correcting it changes any decision in the paper or only the explanation.]]
+We thank the reviewer for raising these. They are separate points and we take them in turn.
 
-| Dataset | Config | ε requested | ε realised | δ requested | δ\* (pre-check) | δ enforced | Realised ratio |
-|---|---|---|---|---|---|---|---|
-| [[ ]] | [[ ]] | [[ ]] | [[ ]] | [[ ]] | [[ ]] | [[ ]] | [[ ]] |
+**ε and the reported split sizes.** ε = 0 was requested in every run and never tuned per dataset. It is attained exactly wherever EMPIRE assigns individual sentences: at α = 1 (K = 0) the realised ratios match Native on all 24 datasets. Under α < 1 a cluster is indivisible, so the attainable ratios are quantised by cluster size and an exact match may not exist. Across Table 2, 6 of the 96 clustered cells deviate at two decimals — all at α < 1 and all at δ\* — against 0 of the 48 unclustered cells. The deviating cells are CrossNER_science and MAPA_fine at α = 0, and CrossNER_music, CrossNER_science, mit-movie and StackOverflow-NER at α = 0.5. Section 4.3's "so every split matches the target ratio exactly" describes the request accurately, and we will qualify it so that it describes the outcome accurately as well.
 
-**Action:** [[...]]
+This also bears on the comparison with MinCut, which is made at α = 1: that configuration does not cluster and reproduces the native ratio exactly on all 24 datasets, whereas MinCut's ratios move — on AnatEM it enlarges the training split from 0.50 to 0.51, which as Section 5 notes is how it reaches 100% disjointness there.
+
+**The Appendix A.2 claim.** We agree with the reviewer, and we will revise Appendix A.2 accordingly. Minimising ε + ∑_t δ_t over a shared assignment returns a feasible tolerance vector of minimum *total* slack rather than independently minimal per-class tolerances, since the terms are coupled through the same partition variables. One stated consequence changes with it: Appendix A.2 currently tells a practitioner that tolerances below (ε\*, δ\*) admit no valid partition, which holds componentwise but not in general, and we will restate it in terms of total slack.
+
+No reported result depends on the difference. δ\* enters the pipeline as the tolerance *enforced* in the main solve, and the class balance we report is measured on the resulting splits (the Hellinger distances in Table 5) rather than inferred from the pre-check. Empirically the distinction rarely arises at all: Table 8 reports δ\*_t against a requested floor of 0.1, and the pre-check returns exactly that floor for **every** class on 15 of 24 datasets at α = 0 and 14 of 24 at α = 0.5.
+
+**Action:** We will (i) rewrite the Section 4.3 sentence so that ε = 0 is stated as requested throughout and attained exactly at α = 1, with clustered configurations deviating by at most the granularity of one cluster; (ii) add a per-dataset table of requested and realised ε; (iii) rewrite Appendix A.2 to state that the pre-check returns a feasible tolerance vector of minimum total slack whose components are not independent feasibility thresholds, and restate the infeasibility claim accordingly; and (iv) state that the split-size comparison with MinCut is made at α = 1, where ε = 0 holds on all 24 datasets.
 
 **Question-1:**
 > Clarification: What specific limitation prevents a comparison with DataSAIL given its support for multiple class memberships? Is the distinction principally the handling of entity mention counts and the entity-isolation objective?
 
-[[ANSWER. The reviewer offers a specific hypothesis in the second sentence — confirm or correct it. If nothing prevents the comparison, say so and point to the results in W1.]]
+Nothing prevents the comparison, and we are adding DataSAIL as a baseline. The reviewer's reading is correct: the distinction is the handling of entity mention counts together with the entity-isolation objective, and the two are needed jointly rather than separately.
+
+Mention counts are what DataSAIL's stratification cannot express, for the reason given in our response to **Weakness-1** — its weight κ is indexed by the element alone, so a sentence contributes the same weight to every class it contains, and the constraint conserves how many sentences touch a class rather than how many mentions of it each split receives. Entity isolation is a separate objective that DataSAIL does not have at all: its objective minimises cross-split similarity, which is a context criterion, and nothing in it requires a given entity to occur in exactly one split. EMPIRE needs both because the two interact — isolating entities concentrates classes, and only a mention-level class constraint prevents that from starving a split of a class, which Section 5.4 shows is what otherwise drives the apparent F1 drop.
 
 **Question-2:**
 > Clarification: What size and class tolerances were actually used for each reported split? How should the exact-size claim and the componentwise-minimum claim in Appendix A.2 be reconciled with the optimization and Table 2?
 
-[[ANSWER. From the tolerance table and the Appendix A.2 correction in W3.]]
+**Tolerances used.** ε = 0 was requested in every run, for both the feasibility pre-check and the main optimization, and was never adjusted per dataset. The class tolerance enforced in the main solve is δ\*, the per-class vector returned by the pre-check against a requested floor of 0.1; it equals that floor for every class on 15 of 24 datasets at α = 0 and 14 of 24 at α = 0.5, and exceeds it elsewhere (Table 8). The tables labelled "δ = 0.1" report those same δ\* runs under a second name: Tables 3 and 9 label the setting δ\* (lb 0.1) while Tables 2, 5, 6 and 7 label it δ = 0.1, and no configuration in the paper enforces a flat δ = 0.1 across all classes. We will use one label throughout and add a per-dataset table of requested and realised values.
+
+**The exact-size claim.** It holds where EMPIRE assigns individual sentences. At α = 1 the realised ratios match Native on all 24 datasets; the 6 deviating cells in Table 2 are all at α < 1, where an indivisible cluster quantises the attainable ratios. See our response to **Weakness-3** for the per-configuration counts.
+
+**The componentwise claim.** It does not hold, and we will replace it. The pre-check returns a feasible tolerance vector minimising ε + ∑_t δ_t, i.e. of minimum total slack; its components are not independent feasibility thresholds. As set out in **Weakness-3**, this changes the statement in Appendix A.2 about tolerances below (ε\*, δ\*) being infeasible, and changes no reported result, since δ\* was enforced rather than used to rule configurations out.
 
 ---
 
