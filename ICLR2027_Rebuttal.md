@@ -1,57 +1,5 @@
 # ICLR 2027 Rebuttal — Submission 53528
 
-**Paper:** EMPIRE: Explicit Method for dataset Partitioning using Integer programming for Named Entity Recognition to reduce data leakage
-**Venue:** ICLR 2027 Conference
-**Forum:** https://openreview.net/forum?id=0olLNq4Hkm
-
-<!--
-HOW TO USE THIS FILE
---------------------
-- Reviewer text below is verbatim from OpenReview. Do not edit it.
-- Replace every `[[ ... ]]` placeholder with the response.
-- Each reviewer section is self-contained and posted as its own Official Comment.
-  Nothing is shared or cross-referenced between reviewers.
-- Keep the house style from `Rebuttal.md`: respond, then close each point with a
-  bold **Action:** line naming the concrete paper change (section / table / figure).
-- Table convention: **bold** = best in column, <u>underline</u> = second best.
--->
-
-| Reviewer | Rating | Confidence | Presentation | Informativeness | Soundness | Headline concern |
-|---|---|---|---|---|---|---|
-| QoTi | 2: Weak rejection | 4 | 3 | 2 | 2 | Novelty over DataSAIL; context-leakage metric vs. TopSim's 8.5-pt F1 drop |
-| TuZj | 2: Weak rejection | 2 | 2 | 2 | 2 | Pre-check guarantee is wrong; ε/δ reporting inconsistent; α comparison confounded |
-| Num2 | 2: Weak rejection | 3 | 3 | 2 | 2 | DataSAIL exclusion unjustified; context objective unvalidated; ε/δ inconsistent |
-| fYPh | 1: Clear rejection | 3 | 2 | 1 | 1 | Limited conceptual and methodological novelty; baselines not constraint-matched |
-
-<!--
-INTERNAL OVERLAP MAP — NOT POSTED. Planning aid only.
-Six points recur across reviewers. Each is answered in full inside every
-reviewer section that raised it, but the underlying numbers and concessions
-must stay consistent across those sections. Check this map before posting.
-
-  A  DataSAIL premise is wrong; no constraint-matched baseline
-       QoTi W1 · TuZj W1(a), Q1 · Num2 W1, Q1 · fYPh W2, Q1
-  B  Baselines lack equivalent size/class constraints
-       QoTi W1 · TuZj W1(a) · fYPh W2, Q1
-  C  ε fixed at 0 vs. relaxed in Table 2; δ* vs. δ=0.1 vs. δ=1 labels
-       QoTi Q1 · TuZj W1(c), Q2 · Num2 W3, Q2
-  D  Appendix A.2 coordinatewise-minimality claim is false
-       TuZj W1(b), Q2(c) · Num2 W3
-  E  Mean similarity hides near-duplicates; TopSim moves F1 but not the metric
-       QoTi W2 · TuZj W2(c), Q4 · Num2 W2
-  F  α comparison confounds objective weight with assignment granularity
-       TuZj W2(b), Q5(a) · fYPh Q2
-
-Shared artifacts that several sections will cite — build each once, reuse the
-same numbers everywhere:
-  - (no new baseline runs: DataSAIL and constrained-MinCut are NOT being run)
-  - per-dataset ε and δ tolerance table
-  - nearest-neighbour / near-duplicate similarity table
-  - fixed-clustering α ablation
--->
-
----
-
 # Reviewer QoTi:
 
 We thank the reviewer for their valuable feedback, and in particular for recognising that the class-balance constraints make the evaluation easier to interpret (unseen-test-entity share in classes with fewer than ten training mentions falling from 5.8% to 0.1%).
@@ -119,7 +67,7 @@ Both splits satisfy **Equation (1)** exactly, at its tightest setting δ = 0, fo
 
 The contribution is a formulation in which both leakage types and that quantity are jointly expressible, plus the evidence that controlling them changes which conclusions a leakage-reduced evaluation supports.
 
-**Action:** We will (i) correct the inaccurate "one label per sample" justification in Sections 1–2 and replace it with the κ(x) vs. κ(x, c) distinction above, and (ii) add the degeneracy argument and worked example to Appendix [[A.x]].
+**Action:** We will (i) correct the inaccurate "one label per sample" justification in Sections 1–2 and replace it with the κ(x) vs. κ(x, c) distinction above, and (ii) add the degeneracy argument and worked example to Appendix.
 
 **Weakness-2:**
 > How can authors conclude that context leakage has little effect when TopSim lowers F1 by 8.5 points while barely changing their metric? Could averaging similarity across all sentence pairs hide the near duplicates that actually help the model?
