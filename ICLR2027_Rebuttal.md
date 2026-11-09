@@ -345,13 +345,29 @@ We thank the reviewer for this. We agree that a paired ΔF1 between two differen
 **Weakness-2(b) — The α comparison changes more than the objective weights:**
 > The comparison across α changes more than the objective weights. The entity-only configuration assigns individual sentences, whereas configurations with α < 1 assign 50 clusters. Appendix A.3 additionally uses α to construct the clustering representation. Consequently, the comparisons change the objective, cluster composition, and feasible assignments simultaneously. Section 5.2 acknowledges part of this issue, but the results still do not cleanly identify the effect of the proposed interpolation weight. The comparison with TopSim introduces another difference: TopSim uses unmasked embeddings, whereas EMPIRE's context objective uses entity-masked embeddings.
 
-[[RESPONSE. The control is explicit and cheap: fix the clustering and the constraints, vary only α. A representative subset is sufficient — the reviewer says so directly at the end of Q5. Handle the masked/unmasked TopSim discrepancy here too, or in W2(c), but handle it once.]]
+We thank the reviewer. We agree, and the list of what moves with α is in fact one item longer than Section 5.2 admits. Three things change together:
 
-| Dataset | Fixed clustering, α=1 | α=0.5 | α=0 |
-|---|---|---|---|
-| [[ ]] | [[ ]] | [[ ]] | [[ ]] |
+1. **the objective weight**, which is the intended manipulation;
+2. **the clustering representation**, since Appendix A.3 builds the K-means feature space as [√α · v_ent ‖ √(1−α) · v_struct], so the cluster composition itself is a function of α;
+3. **the assignment granularity**, since α = 1 assigns individual sentences (K = 0) while α < 1 assigns K = 50 clusters.
 
-**Action:** [[...]]
+Section 5.2 notes the third and not the second, and we will correct that.
+
+**The tightest comparison our results support.** α = 0 and α = 0.5 both cluster at K = 50, so granularity is held fixed between them and only items 1 and 2 differ. At ε = 0 and δ\*:
+
+| | Disjointness (%) ↑ | ECR (%) ↓ | Information leakage ↓ | Test F1 |
+|---|---|---|---|---|
+| Native | 84.46 | 49.06 | 0.3962 | 0.665 |
+| EMPIRE (α = 0) | 81.88 | 52.51 | **0.3757** | 0.655 |
+| EMPIRE (α = 0.5) | **84.61** | **44.52** | 0.3884 | 0.631 |
+
+Moving from α = 0 to α = 0.5 raises entity disjointness by 2.74 points and lowers ECR by 7.99, while information leakage rises by 0.0127 and F1 falls by 0.025. The directions are what the weight predicts — shifting weight toward the entity term buys entity isolation and gives back context dissimilarity — and this is the one pair in which that reading is not also confounded by granularity.
+
+**What is still not identified.** Even that pair does not isolate the weight, because the clustering representation moves with α as well, so the solver is choosing over a different set of super-nodes at α = 0.5 than at α = 0. And every comparison involving α = 1 changes granularity on top of both. We therefore do not identify the effect of the interpolation weight in isolation, and Section 5.2 should not be read as doing so. What the results do establish is the behaviour of the three *configurations* we actually ran, which is what a practitioner selects between.
+
+**On TopSim.** The reviewer is right that TopSim scores sentences with unmasked embeddings while our context objective uses entity-masked ones. The evaluation is on common ground: information leakage is computed with entity-masked all-MiniLM-L6-v2 for every method including TopSim (Table 6), so the reported leakage numbers are not affected by the asymmetry. It remains a difference in how the baseline is *constructed*. Its likely direction is worth noting: unmasked cosine similarity is inflated between sentences sharing an entity, so isolating sentences by maximum unmasked similarity would tend to separate entity-sharing sentences and raise entity disjointness. TopSim's disjointness is 83.37 against Native's 84.46, a decrease of 1.10 points, so in practice the asymmetry did not confer entity separation. We will state the construction difference explicitly rather than leaving it to be inferred from Appendix A.6.
+
+**Action:** We will (i) state in Section 5.2 and Appendix A.3 that α enters the clustering representation as well as the objective, so that cluster composition varies with α; (ii) rewrite Section 5.2 to present α = 0 versus α = 0.5 as the comparison in which granularity is fixed, and to state that the weight's effect is not identified in isolation by our design; (iii) describe the α = 0.5 result as interpolating between the two *configurations* rather than between the two objectives; and (iv) record in Section 4.2 and the Limitations that TopSim is constructed on unmasked embeddings while EMPIRE's context objective uses masked ones, and that all reported leakage figures are computed on masked embeddings.
 
 **Weakness-2(c) — Context metric supports a narrower conclusion:**
 > The context metric and statistical result support a narrower conclusion than the paper draws. Mean similarity over all cross-split sentence pairs can obscure a small number of highly similar training–test pairs. The authors acknowledge this when discussing TopSim, which lowers F1 without increasing entity disjointness. In addition, the optimized normalized-centroid surrogate differs from the sentence-level metric used for evaluation. Therefore, reducing this metric and observing no significant average F1 decrease does not establish that removing context leakage generally leaves performance unchanged. The current evidence supports a statement about the tested procedure and similarity measure, rather than a general contrast between entity and context memorization.
