@@ -254,7 +254,7 @@ Read down the δ = 1 row: with its class constraint removed, EMPIRE's class drif
 
 So the two contributions can be read off separately. The constraint's own effect is the δ = 1 → δ\* step: drift falls from 0.1407 to 0.0179, below even Native's 0.0415, at a cost of 2.09 points of disjointness. The formulation's effect is the MinCut → δ = 1 comparison at matched drift. We did not present the results this way, and we will.
 
-**Action:** We will (i) replace the incorrect "one label per sample" justification in Sections 1–2 with the κ(x) versus A_{x,c} distinction above; (ii) add DataSAIL as a baseline; and (iii) restructure Section 5.1 to present δ = 1 explicitly as the constraint-matched comparison against MinCut, and the δ = 1 → δ\* step as the isolated effect of the class-balance constraint, rather than comparing the constrained configuration against unconstrained baselines.
+**Action:** We will replace the incorrect "one label per sample" justification in Sections 1–2 with the κ(x) versus A_{x,c} distinction above.
 
 **Weakness-1(b) — Feasibility pre-check does not give the claimed coordinatewise guarantee:**
 > The feasibility pre-check does not provide the coordinatewise guarantee claimed in Appendix A.2. The objective
