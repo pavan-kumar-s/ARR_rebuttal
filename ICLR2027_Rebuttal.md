@@ -9,7 +9,7 @@ We thank the reviewer for their valuable feedback, and in particular for recogni
 >
 > [1] Joeres, R., Blumenthal, D.B. & Kalinina, O.V. Data splitting to avoid information leakage with DataSAIL. Nat Commun 16, 3337 (2025).
 
-We thank the reviewer for mentioning this. One limitation of DataSAIL on NER data is that its stratification constraint conserves the number of *sentences* that touch a class, not the number of *mentions* of that class. These are different quantities, and the second is what determines training support.
+We thank the reviewer for mentioning this. The question is not only how our class constraint differs from DataSAIL's, but why NER needs the difference. DataSAIL's stratification conserves the number of *sentences* that touch a class. What determines whether a class can be learned is the number of *mentions* of it that reach the training split. On NER data those two come apart, and when they do a split can satisfy the sentence-level constraint exactly while leaving a class with too few training mentions to recognise at test time.
 
 DataSAIL does permit multi-class membership, and it enforces stratification for each class separately. The issue is not multi-label capability but **what the constraint counts**.
 
@@ -139,7 +139,7 @@ We thank the reviewer for an exceptionally thorough review. We address each of t
 
 We thank the reviewer for raising this. There are two claims here, and we take them one by one.
 
-**On DataSAIL.** One limitation of DataSAIL on NER data is that its stratification constraint conserves the number of *sentences* that touch a class, not the number of *mentions* of that class. These are different quantities, and the second is what determines training support.
+**On DataSAIL.** The question is not only how our class constraint differs from DataSAIL's, but why NER needs the difference. DataSAIL's stratification conserves the number of *sentences* that touch a class. What determines whether a class can be learned is the number of *mentions* of it that reach the training split. On NER data those two come apart, and when they do a split can satisfy the sentence-level constraint exactly while leaving a class with too few training mentions to recognise at test time.
 
 DataSAIL does permit multi-class membership, and it enforces stratification for each class separately. The issue is not multi-label capability but **what the constraint counts**.
 
@@ -485,7 +485,7 @@ We thank the reviewer for their valuable feedback, and for recognising the value
 **Weakness-1:**
 > The distinction from DataSAIL needs to be established more carefully. The paper states that DataSAIL assumes one label per sample, but its published formulation explicitly permits membership in multiple classes and combines stratification with similarity-aware ILP splitting. EMPIRE's entity-isolation objective and mention-count constraints may still add value, but the stated justification for omitting this baseline is insufficient.
 
-We thank the reviewer for raising this. One limitation of DataSAIL on NER data is that its stratification constraint conserves the number of *sentences* that touch a class, not the number of *mentions* of that class. These are different quantities, and the second is what determines training support.
+We thank the reviewer for raising this. The question is not only how our class constraint differs from DataSAIL's, but why NER needs the difference. DataSAIL's stratification conserves the number of *sentences* that touch a class. What determines whether a class can be learned is the number of *mentions* of it that reach the training split. On NER data those two come apart, and when they do a split can satisfy the sentence-level constraint exactly while leaving a class with too few training mentions to recognise at test time.
 
 DataSAIL does permit multi-class membership, and it enforces stratification for each class separately. The issue is not multi-label capability but **what the constraint counts**.
 
