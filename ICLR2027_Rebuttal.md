@@ -2,7 +2,7 @@
 
 # Reviewer QoTi:
 
-We thank the reviewer for their valuable feedback, and in particular for recognising that the class-balance constraints make the evaluation easier to interpret (unseen-test-entity share in classes with fewer than ten training mentions falling from 5.8% to 0.1%).
+We thank the reviewer for their valuable feedback, and in particular for recognising that the class-balance constraints make the evaluation easier to interpret (unseen-test-entity share in classes with fewer than ten training mentions falling from 5.8% to 0.1%). We will submit a revised version based on this feedback.
 
 **Weakness-1:**
 > Novelty over existing methods is unclear: DataSAIL [1] already combines similarity-based splitting with class balancing. The paper instead compares against MinCut, a graph-partitioning heuristic for reducing entity overlap, which lacks the comparable class-balance constraints. This certainly shows that class balancing is useful but what is the contribution of EMPIRE beyond that?
@@ -132,12 +132,12 @@ We will add a table to the Appendix reporting, for every dataset and every confi
 
 # Reviewer TuZj:
 
-We thank the reviewer for an exceptionally thorough review. Several of the points below identify genuine errors in the submission, and we address them directly.
+We thank the reviewer for an exceptionally thorough review. We address each of the points below directly, and we will submit a revised version based on this feedback.
 
 **Weakness-1(a) — Distinction from DataSAIL rests on an incorrect premise:**
 > The distinction from closely related methods is based partly on an incorrect premise. Sections 1–2 exclude DataSAIL because it supposedly assumes one label per sample. However, DataSAIL explicitly allows multiple class memberships and combines similarity-aware splitting with stratification, size constraints, clustering, and integer programming (Joeres et al., 2025, Eq. 4). This does not make it equivalent to EMPIRE's entity-isolation and mention-count formulation, but the paper needs to establish those specific differences rather than exclude the framework on incorrect grounds. Since MinCut and TopSim do not enforce comparable class constraints, their worse class preservation also does not isolate the benefit of EMPIRE's particular formulation from the benefit of adding such constraints.
 
-We thank the reviewer for raising this. There are two claims here, and we take them in turn.
+We thank the reviewer for raising this. There are two claims here, and we take them one by one.
 
 **On DataSAIL.** One limitation of DataSAIL on NER data is that its stratification constraint conserves the number of *sentences* that touch a class, not the number of *mentions* of that class. These are different quantities, and the second is what determines training support.
 
@@ -189,7 +189,7 @@ Every sentence contains both classes, so n^c = 12 under **Equation (1)** and n^c
 
 Both splits satisfy **Equation (1)** exactly, at its tightest setting δ = 0, for both classes: to DataSAIL they are indistinguishable. Under **Equation (2)** they are not. Split A leaves training 16 of the 33 `ORG` mentions — 48% against a 67% target — and leaves the test set just 4 of the 33 `PER` mentions, 12% against 33%. A model evaluated on it scores poorly on `ORG` for want of training support, and its `PER` score rests on four test mentions; neither has anything to do with whether the test entities are unseen. That is the confound of our Section 5.4, reintroduced by a constraint reporting zero violation. Split B is the same 8 / 4 sentence split, equally admissible to DataSAIL, and meets **Equation (2)** exactly at 22 / 11 for both classes. DataSAIL cannot distinguish A from B; our formulation rejects A and admits B.
 
-**On isolating the formulation from the constraint.** The reviewer is right that MinCut's worse class preservation cannot, by itself, separate the two. But the separation is already available in our results, because δ = 1 removes EMPIRE's class-balance constraint and is therefore the constraint-matched counterpart to MinCut:
+The reviewer is right that MinCut's worse class preservation cannot, by itself, separate the two. But the separation is already available in our results, because δ = 1 removes EMPIRE's class-balance constraint and is therefore the constraint-matched counterpart to MinCut:
 
 | | Entity disjointness (%) ↑ | Class drift (Hellinger) ↓ | Split sizes |
 |---|---|---|---|
@@ -222,6 +222,8 @@ So the two contributions can be read off separately. The constraint's own effect
 
 We agree with the reviewer, and we will revise Appendix A.2 accordingly. Minimising ε + ∑_t δ_t over a shared assignment returns a feasible tolerance vector of minimum *total* slack rather than independently minimal per-class tolerances — as the reviewer's A = (2,0,1,1), B = (2,1,1,0) instance shows, no single partition need attain each class's individual minimum simultaneously. The sentence stating that the minimisation "drives every class's tolerance down to its own achievable minimum, independent of how constrained any other class is" will be replaced.
 
+**What the pre-check is for.** Its value does not rest on the componentwise reading. Before the main solve it answers whether a requested (ε, δ) admits any partition at all for the given dataset and K, and returns one that does. That matters because the main solve is expensive — 7,200 s at α = 1 and 14,400 s at α < 1 (Appendix A.7) — so an infeasible request would otherwise consume the full budget and return nothing. It also tells a practitioner whether the tolerance they asked for is attainable rather than merely whether some tolerance is: the requested floor of 0.1 is returned unchanged for every class on 15 of 24 datasets at α = 0 and 14 of 24 at α = 0.5, and must be relaxed only on the rest. Both properties hold of a minimum-total-slack feasible point and survive the correction.
+
 **On ε.** We agree that admitting ε into the same sum trades size relaxation against class relaxation instead of prioritising exact sizes, and that the text does not convey this. In practice ε = 0 was requested throughout and attained exactly wherever EMPIRE assigns individual sentences: at α = 1 the realised split ratios match Native on all 24 datasets, and across every EMPIRE configuration only 6 of the 96 clustered cells in Table 2 deviate at two decimals, all of them at α < 1 where an indivisible cluster quantises the attainable ratios. That is an empirical observation about our runs rather than a property the formulation guarantees, and we will say so explicitly.
 
 **Action:** We will (i) rewrite Appendix A.2 to state that the pre-check returns a feasible tolerance vector minimising ε + ∑_t δ_t, i.e. of minimum total slack, and explicitly that its components are not independent feasibility thresholds; (ii) report that δ\*_t equals the 0.1 floor for every class on 15 / 24 (α = 0) and 14 / 24 (α = 0.5) datasets, so the corrected reading leaves the reported configurations unchanged.
@@ -229,7 +231,7 @@ We agree with the reviewer, and we will revise Appendix A.2 accordingly. Minimis
 **Weakness-1(c) — Constraints actually enforced are ambiguous:**
 > The constraints actually enforced in the experiments are ambiguous. Section 4.3 states that ε = 0 throughout, whereas Table 2 describes zero as a lower bound that may be relaxed and reports changed split ratios. Likewise, Section 4.3 describes using the pre-check output δ∗, while Appendix A.2 says that experimental tolerances need not equal that output and that the pre-check is strictly diagnostic. Several tables label the constrained setting as δ = 0.1, although Table 8 includes tolerances up to 1. These distinctions matter because exact size preservation and class support are central to the claimed advantage. Moreover, Eq. (4) bounds each class's allocation of mentions; it does not enforce the identical within-split class ratios suggested by Figure 1.
 
-We thank the reviewer for mentioning this. We answer them in turn, with the change we will make in each case.
+We thank the reviewer for mentioning this. We answer them one by one and will clarify each in the revision.
 
 **ε.** ε = 0 was requested in every run. It is attained exactly wherever EMPIRE assigns individual sentences: at α = 1 (K = 0) the realised ratios match Native on all 24 datasets. Under α < 1, a cluster is indivisible, so the attainable ratios are quantised by cluster size and an exact match may not exist; 6 of the 96 clustered cells in Table 2 deviate at two decimals, all at α < 1 and all at δ\*, against 0 of the 48 unclustered cells.
 
@@ -357,7 +359,7 @@ The reweighting analysis uses the existing span-weighted recovery rates across t
 **Weakness-2(e) — Metric and reporting inconsistencies:**
 > Metric and reporting inconsistencies further complicate verification. Entity targets are stemmed during optimization but matched by exact surface form during evaluation; the objective is frequency-weighted, whereas disjointness weights unique targets equally. Accordingly, matching MinCut on disjointness does not imply matching it on ECR, where the class-constrained configuration retains more overlap. Figure 1's information-leakage averages also disagree with Table 6: for example, Native is shown as approximately 0.175, whereas the table entries average approximately 0.396. Appendix A.4 similarly illustrates an unweighted entity objective rather than the frequency-weighted Eq. (9). These may be correctable reporting issues, but they need reconciliation before the associated quantitative claims can be assessed confidently.
 
-We thank the reviewer for these. All three are checkable, and we answer each in turn.
+We thank the reviewer for these. All three are checkable, and we answer them one by one.
 
 **(i) Stemming, and the two weightings.** We agree with both observations. Entity surface forms are stemmed with NLTK's SnowballStemmer before the target set E is built (Section 3), while the Disjointness Score matches "targets ... by exact surface form and class" (Section 4.5). The direction of this mismatch matters, though, and runs opposite to a concern about inflation: stemming *merges* morphological variants into a single target, so the optimizer must isolate a coarser and strictly harder set of objects than the metric scores. Stem-level disjointness implies surface-level disjointness, never the reverse. The mismatch therefore cannot inflate EMPIRE's reported Disjointness Score; it understates the problem the solver actually solved. We will nonetheless make both definitions explicit and report the Disjointness Score over stemmed targets alongside the surface-form version.
 
@@ -382,7 +384,7 @@ Only the Information Leakage row is affected; the other two reproduce the tables
 **Question-1 — Precise methodological advance over existing constrained splitting frameworks:**
 > Given DataSAIL's support for multiple class memberships, which aspects of EMPIRE require a genuinely different formulation: per-class mention multiplicities, entity-identity isolation, or their combination with the context objective? Please distinguish these requirements from capabilities already present in similarity-aware stratified splitting. What evidence establishes the benefit of the proposed formulation under comparable size and class-support requirements? An appropriately adapted comparison, or a precise explanation of why the relevant adaptation is not feasible, would materially clarify the contribution.
 
-We thank the reviewer. Taking the three candidates in turn.
+We thank the reviewer. Taking the three candidates one by one.
 
 **Per-class mention multiplicities — requires a different formulation.** This is the point set out in our response to **Weakness-1(a)**: DataSAIL's stratification weight κ is indexed by the element alone, so a sentence contributes the same weight to every class it contains, and **Equation (1)** conserves how many sentences touch a class. The quantity that determines NER training support is how many mentions of that class a split receives, which needs the weight indexed by the pair, as in **Equation (2)**. No setting of κ recovers it, because κ has no class index to vary over.
 
@@ -478,7 +480,7 @@ The observations the claim rests on are unchanged: unseen test entities are reco
 
 # Reviewer Num2:
 
-We thank the reviewer for their valuable feedback, and for recognising the value of the class-support analysis in explaining why aggressive entity separation can produce misleadingly low scores.
+We thank the reviewer for their valuable feedback, and for recognising the value of the class-support analysis in explaining why aggressive entity separation can produce misleadingly low scores. We will submit a revised version based on this feedback.
 
 **Weakness-1:**
 > The distinction from DataSAIL needs to be established more carefully. The paper states that DataSAIL assumes one label per sample, but its published formulation explicitly permits membership in multiple classes and combines stratification with similarity-aware ILP splitting. EMPIRE's entity-isolation objective and mention-count constraints may still add value, but the stated justification for omitting this baseline is insufficient.
@@ -557,7 +559,7 @@ Without the class-stratification constraint our context-only split lowers F1 by 
 **Weakness-3:**
 > The feasibility guarantees and reported settings are inconsistent. Section 4.3 states that split sizes are exact with ε = 0, while Table 2 reports deviations for several clustered configurations. Appendix A.2 also claims that minimizing the sum of tolerances independently minimizes every class's tolerance, although these variables are coupled through the shared assignment. These issues matter because precise control of split sizes and class balance is central to the contribution.
 
-We thank the reviewer for raising these. They are separate points and we take them in turn.
+We thank the reviewer for raising these. They are separate points and we take them one by one.
 
 **ε and the reported split sizes.** ε = 0 was requested in every run and never tuned per dataset. It is attained exactly wherever EMPIRE assigns individual sentences: at α = 1 (K = 0) the realised ratios match Native on all 24 datasets. Under α < 1 a cluster is indivisible, so the attainable ratios are quantised by cluster size and an exact match may not exist. Across Table 2, 6 of the 96 clustered cells deviate at two decimals — all at α < 1 and all at δ\* — against 0 of the 48 unclustered cells. The deviating cells are CrossNER_science and MAPA_fine at α = 0, and CrossNER_music, CrossNER_science, mit-movie and StackOverflow-NER at α = 0.5. Section 4.3's "so every split matches the target ratio exactly" describes the request accurately, and we will qualify it so that it describes the outcome accurately as well.
 
@@ -589,20 +591,26 @@ Entity isolation is a separate objective that DataSAIL does not have at all: its
 
 ---
 
-# Reviewer fYPh: 
+# Reviewer fYPh:
+
+We thank the reviewer for their feedback, and we will submit a revised version based on it.
 
 **Weakness-1:**
 > Limited conceptual novelty. Entity leakage and memorization in NER are well studied. The main findings largely confirm prior work, while the conceptual advance from jointly controlling context leakage and class balance remains limited.
 
-We agree that entity leakage and memorization in NER are well studied, and we cite that work: models score better on entities seen in training than on unseen ones (Augenstein et al., 2017; Fu et al., 2020; Elangovan et al., 2021; Golde et al., 2025; Babl et al., 2025). We do not claim to establish that effect. Three things go beyond it, in order of how much we think they add.
+Our contribution is a splitting formulation with three parts, and a fourth, minor one.
 
-**1. A correction to how leakage-reduced evaluations are read.** Prior work removes entity overlap and reports the resulting F1 drop as a measure of the generalization gap. Section 5.4 shows that a substantial part of that drop need not be a generalization signal at all: removing overlap without controlling class balance strands entity classes, leaving 20–32 classes absent from a split at δ = 1 against 5–6 at δ\*, and 2–8 datasets with fewer than 200 gold test entities. Unseen test entities are recovered at the same rate under both settings once training support is matched (Figure 3b); what differs is how many of them belong to classes with almost no training data — 5.8% below ten training mentions at δ = 1 against 0.1% at δ\*. A leakage-reduced split can therefore score low for a reason unrelated to recognising unfamiliar entities, and the difference is not small: every δ = 1 configuration scores 0.13–0.20 below Native, against 0.009–0.087 at δ\*. This bears on how existing results should be read, not only on how future splits should be built.
+**1. Entity and context leakage controlled in one objective.** MinCut targets entity overlap; similarity-based splitters target context. No prior method targets both, and none exposes the trade-off as a parameter. That is what makes the paper's central question askable — which form of leakage inflates NER scores — since answering it requires moving between the two endpoints under otherwise identical constraints.
 
-**2. Entity and context leakage controlled in one objective.** MinCut targets entity overlap; similarity-based splitters target context. No prior method targets both, and none exposes the trade-off as a parameter. That is what makes the paper's central question askable — which form of leakage inflates NER scores — since answering it requires moving between the two endpoints under otherwise identical constraints.
+**2. A class-balance constraint at the level NER requires.** Existing stratified splitters, DataSAIL included, bound how many *sentences* touch a class. For NER the quantity that determines training support is how many *mentions* of that class a split receives, which needs a weight indexed by (element, class) rather than by element alone. We set this out in our response to **Weakness-2**.
 
-**3. A class-balance constraint at the level NER requires.** Existing stratified splitters, DataSAIL included, bound how many *sentences* touch a class. For NER the quantity that determines training support is how many *mentions* of that class a split receives, which needs a weight indexed by (element, class) rather than by element alone. We set this out in our response to **Weakness-2**.
+**3. A correction to how leakage-reduced evaluations are read.** Prior work removes entity overlap and reports the resulting F1 drop as a measure of the generalization gap. Section 5.4 shows that a substantial part of that drop need not be a generalization signal at all: removing overlap without controlling class balance strands entity classes, leaving 20–32 classes absent from a split at δ = 1 against 5–6 at δ\*, and 2–8 datasets with fewer than 200 gold test entities. Unseen test entities are recovered at the same rate under both settings once training support is matched (Figure 3b); what differs is how many of them belong to classes with almost no training data — 5.8% below ten training mentions at δ = 1 against 0.1% at δ\*. A leakage-reduced split can therefore score low for a reason unrelated to recognising unfamiliar entities, and the difference is not small: every δ = 1 configuration scores 0.13–0.20 below Native, against 0.009–0.087 at δ\*. This bears on how existing results should be read, not only on how future splits should be built.
 
-**Action:** We will restate the contributions in Section 1 to separate what we confirm from what we add, foregrounding the class-support finding of Section 5.4 and citing the prior work above explicitly as establishing the entity-memorization effect itself.
+**4. TopSim**, a similarity-aware greedy baseline we introduce (Appendix A.6). It needs no optimization and preserves the native split sizes exactly, and it is what separates near-duplicate context overlap from the aggregate similarity our own objective minimises: it costs 0.085 F1 while moving information leakage by only 0.013, which is how we identify near-duplication as a distinct form of context leakage.
+
+**On what we confirm rather than establish.** Entity leakage and memorization in NER are well studied, and we cite that work: models score better on entities seen in training than on unseen ones (Augenstein et al., 2017; Fu et al., 2020; Elangovan et al., 2021; Golde et al., 2025; Babl et al., 2025). We do not claim to establish that effect. The contributions above concern how splits are built and how the resulting evaluations should be read.
+
+**Action:** We will restate the contributions in Section 1 to separate what we confirm from what we add, and cite the prior work above explicitly as establishing the entity-memorization effect itself.
 
 **Weakness-2:**
 > Limited methodological novelty. EMPIRE combines established techniques within an integer programming formulation. Because the baselines lack equivalent class-balance and split-size constraints, the experiments do not clearly isolate the benefit of the proposed formulation.
