@@ -598,7 +598,7 @@ We thank the reviewer for their feedback, and we will submit a revised version b
 **Weakness-1:**
 > Limited conceptual novelty. Entity leakage and memorization in NER are well studied. The main findings largely confirm prior work, while the conceptual advance from jointly controlling context leakage and class balance remains limited.
 
-Our contribution is a splitting formulation with three parts, and a fourth, minor one.
+Our contribution is a splitting formulation with three parts.
 
 **1. Entity and context leakage controlled in one objective.** MinCut targets entity overlap; similarity-based splitters target context. No prior method targets both, and none exposes the trade-off as a parameter. That is what makes the paper's central question askable — which form of leakage inflates NER scores — since answering it requires moving between the two endpoints under otherwise identical constraints.
 
@@ -606,7 +606,6 @@ Our contribution is a splitting formulation with three parts, and a fourth, mino
 
 **3. A correction to how leakage-reduced evaluations are read.** Prior work removes entity overlap and reports the resulting F1 drop as a measure of the generalization gap. Section 5.4 shows that a substantial part of that drop need not be a generalization signal at all: removing overlap without controlling class balance strands entity classes, leaving 20–32 classes absent from a split at δ = 1 against 5–6 at δ\*, and 2–8 datasets with fewer than 200 gold test entities. Unseen test entities are recovered at the same rate under both settings once training support is matched (Figure 3b); what differs is how many of them belong to classes with almost no training data — 5.8% below ten training mentions at δ = 1 against 0.1% at δ\*. A leakage-reduced split can therefore score low for a reason unrelated to recognising unfamiliar entities, and the difference is not small: every δ = 1 configuration scores 0.13–0.20 below Native, against 0.009–0.087 at δ\*. This bears on how existing results should be read, not only on how future splits should be built.
 
-**4. TopSim**, a similarity-aware greedy baseline we introduce (Appendix A.6). It needs no optimization and preserves the native split sizes exactly, and it is what separates near-duplicate context overlap from the aggregate similarity our own objective minimises: it costs 0.085 F1 while moving information leakage by only 0.013, which is how we identify near-duplication as a distinct form of context leakage.
 
 **On what we confirm rather than establish.** Entity leakage and memorization in NER are well studied, and we cite that work: models score better on entities seen in training than on unseen ones (Augenstein et al., 2017; Fu et al., 2020; Elangovan et al., 2021; Golde et al., 2025; Babl et al., 2025). We do not claim to establish that effect. The contributions above concern how splits are built and how the resulting evaluations should be read.
 
